@@ -80,7 +80,7 @@
     <header class="header" itemscope itemtype="http://schema.org/WPHeader">
       <div class="header-inner"><div class="site-brand-container">
   <div class="site-nav-toggle">
-    <div class="toggle" aria-label="Navigationsleiste an/ausschalten">
+    <div class="toggle" aria-label="Basculer la barre de navigation">
       <span class="toggle-line toggle-line-first"></span>
       <span class="toggle-line toggle-line-middle"></span>
       <span class="toggle-line toggle-line-last"></span>
@@ -110,12 +110,12 @@
   <ul id="menu" class="menu">
         <li class="menu-item menu-item-home">
 
-    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Startseite</a>
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Accueil</a>
 
   </li>
         <li class="menu-item menu-item-archives">
 
-    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archiv</a>
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
 
   </li>
   </ul>
@@ -166,16 +166,22 @@
               <span class="post-meta-item-icon">
                 <i class="fa fa-calendar-o"></i>
               </span>
-              <span class="post-meta-item-text">Veröffentlicht am</span>
-              
+              <span class="post-meta-item-text">Posté le</span>
 
-              <time title="Erstellt: 2020-03-08 00:23:42 / Geändert am: 00:52:08" itemprop="dateCreated datePublished" datetime="2020-03-08T00:23:42+08:00">2020-03-08</time>
+              <time title="Article créé le: 2020-03-08 00:23:42" itemprop="dateCreated datePublished" datetime="2020-03-08T00:23:42+08:00">2020-03-08</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Édité le</span>
+                <time title="Mis à jour le: 2020-03-18 17:35:32" itemprop="dateModified" datetime="2020-03-18T17:35:32+08:00">2020-03-18</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="fa fa-folder-o"></i>
               </span>
-              <span class="post-meta-item-text">in</span>
+              <span class="post-meta-item-text">dans</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
                   <a href="/categories/%E7%BA%A2%E9%98%9F/" itemprop="url" rel="index"><span itemprop="name">红队</span></a>
                 </span>
@@ -192,7 +198,10 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h1 id="有关提权的总结"><a href="#有关提权的总结" class="headerlink" title="有关提权的总结"></a>有关提权的总结</h1><p><strong>主要是想对看到的一些文章做点总结</strong><br>提权广义上来讲其实就是尝试从低权限到高权限的一个过程，或者说通过非正常手法获取到不属于自己权限的行为。我个人更倾向与web漏洞中的越权漏洞来对标系统提权背后的逻辑，一种是直接获取到系统权限（比如ms17-010），一种是未授权使用管理员的某些权限，这种感觉在Windows的域用户里面体现的更明显些（比如<a href="https://thehackernews.com/2018/12/windows-zero-day-exploit.html" target="_blank" rel="noopener">Windows低权限用户任意文件读取</a>）</p>
+          <h1 id="有关提权的总结"><a href="#有关提权的总结" class="headerlink" title="有关提权的总结"></a>有关提权的总结</h1><p><strong>主要是想对看到的一些文章做点总结</strong><br>提权广义上来讲其实就是尝试从低权限到高权限的一个过程，或者说通过非正常手法获取到不属于自己权限的行为。我个人更倾向与web漏洞中的越权漏洞来对标系统提权背后的逻辑，一种是直接获取到系统权限（比如ms17-010），一种是未授权使用管理员的某些权限（比如<a href="https://thehackernews.com/2018/12/windows-zero-day-exploit.html" target="_blank" rel="noopener">Windows低权限用户任意文件读取</a>），有点类似与水平跟垂直的区别吧，当然Windows跟Linux之间也会是有点区别</p>
+<h2 id="Windows"><a href="#Windows" class="headerlink" title="Windows"></a>Windows</h2><p>Windows的提权主要的就是利用漏洞EXP、获取高权限用户信息、获取弱文件夹信息</p>
+<h3 id="漏洞提权"><a href="#漏洞提权" class="headerlink" title="漏洞提权"></a>漏洞提权</h3><p>在Windows的漏洞中总会出现一些能够直接获取权限的漏洞，客户没打对应的补丁然后网上又有公开的EXP的情况下，能够直接拿来利用，前提是需要先确认用户的系统版本信息以及打的补丁编号，这个我们能通过systeminfo来看到<br><img src="https://ftp.bmp.ovh/imgs/2020/03/f44376a481f84f90.png" alt=""><br>Windows10 10.0.18362 并且补丁打的情况就很清楚了<br>当然也可以直接使用wmic qfe get Caption,Description,HotFixID,InstalledOn来直接获取打补丁的情况<br><img src="https://ftp.bmp.ovh/imgs/2020/03/099cb95e86fbdb8c.png" alt=""><br>这种还能够知道大致的一个补丁情况，什么时候安装的等等<br>网上也有那种已经做好的拿来对比补丁号跟版本的脚本</p>
+<h3 id="获取高权限用户信息提权"><a href="#获取高权限用户信息提权" class="headerlink" title="获取高权限用户信息提权"></a>获取高权限用户信息提权</h3><p>这种我也不知道有没有种专门的词汇去描述，但是大家在做渗透的时候都会做过这么一个场景的吧，一个满目疮痍的网站（asp+mssql类似），你通过fckeditor之类的模板直接绕过了黑名单，上传了shell并且拿到权限，发现是个普通用户，这时候大家肯定会想着，去尝试找一下数据库的账户密码来测试下数据库的权限，因为可能web容器我们赋予的只是一个普通用户的权限，但是数据库可能会有更高的权限（说白了就是权限管控并没有做完全），我们这时候就会去找web目录下的.config文件，那里面会有mssql的数据库账号密码，在确认站库不分离的情况下，我们可能能够利用这个方法，获取到更高的权限<br><img src="https://ftp.bmp.ovh/imgs/2020/03/dea9a7748b3aacf0.png" alt=""></p>
 
       
     </div>
@@ -253,10 +262,10 @@
 
       <ul class="sidebar-nav motion-element">
         <li class="sidebar-nav-toc">
-          Inhaltsverzeichnis
+          Table Des Matières
         </li>
         <li class="sidebar-nav-overview">
-          Übersicht
+          Aperçu
         </li>
       </ul>
 
@@ -276,16 +285,16 @@
           <a href="/archives/">
         
           <span class="site-state-item-count">1</span>
-          <span class="site-state-item-name">Artikel</span>
+          <span class="site-state-item-name">articles</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
         <span class="site-state-item-count">1</span>
-        <span class="site-state-item-name">Kategorien</span>
+        <span class="site-state-item-name">catégories</span>
       </div>
       <div class="site-state-item site-state-tags">
         <span class="site-state-item-count">3</span>
-        <span class="site-state-item-name">schlagwörter</span>
+        <span class="site-state-item-name">mots clé</span>
       </div>
   </nav>
 </div>
@@ -315,10 +324,10 @@
   </span>
   <span class="author" itemprop="copyrightHolder">cty</span>
 </div>
-  <div class="powered-by">Erstellt mit  <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">chenfan</a> v4.2.0
+  <div class="powered-by">Propulsé par <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">chenfan</a> v4.2.0
   </div>
   <span class="post-meta-divider">|</span>
-  <div class="theme-info">Design – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.2
+  <div class="theme-info">Thème – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.2
   </div>
 
         
