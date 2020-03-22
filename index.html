@@ -175,7 +175,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">Bearbeitet am</span>
-                <time title="Geändert am: 2020-03-22 15:44:29" itemprop="dateModified" datetime="2020-03-22T15:44:29+08:00">2020-03-22</time>
+                <time title="Geändert am: 2020-03-22 15:53:42" itemprop="dateModified" datetime="2020-03-22T15:53:42+08:00">2020-03-22</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -198,19 +198,38 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>[TOC]</p>
-<h1 id="有关提权的总结"><a href="#有关提权的总结" class="headerlink" title="有关提权的总结"></a>有关提权的总结</h1><p><strong>主要是想对看到的一些文章做点总结</strong><br>提权广义上来讲其实就是尝试从低权限到高权限的一个过程，或者说通过非正常手法获取到不属于自己权限的行为。我个人更倾向与web漏洞中的越权漏洞来对标系统提权背后的逻辑，一种是直接获取到系统权限（比如ms17-010），一种是未授权使用管理员的某些权限（比如<a href="https://thehackernews.com/2018/12/windows-zero-day-exploit.html" target="_blank" rel="noopener">Windows低权限用户任意文件读取</a>），有点类似与水平跟垂直的区别吧，当然Windows跟Linux之间也会是有点区别</p>
-<h2 id="Windows"><a href="#Windows" class="headerlink" title="Windows"></a>Windows</h2><p>Windows的提权主要的就是利用漏洞EXP、获取高权限用户信息、获取弱文件夹信息</p>
+          <!-- toc -->
+
+<ul>
+<li><a href="#有关提权的总结">有关提权的总结</a><ul>
+<li><a href="#windows">Windows</a><ul>
+<li><a href="#漏洞提权">漏洞提权</a></li>
+<li><a href="#获取高权限用户信息提权">获取高权限用户信息提权</a></li>
+<li><a href="#dll文件劫持">dll文件劫持</a><ul>
+<li><a href="#windows下dll的查找顺序">Windows下dll的查找顺序</a></li>
+<li><a href="#dll本身可能存在问题">dll本身可能存在问题</a></li>
+<li><a href="#弱文件夹类型">弱文件夹类型</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<!-- tocstop -->
+
+<h1><span id="有关提权的总结">有关提权的总结</span></h1><p><strong>主要是想对看到的一些文章做点总结</strong><br>提权广义上来讲其实就是尝试从低权限到高权限的一个过程，或者说通过非正常手法获取到不属于自己权限的行为。我个人更倾向与web漏洞中的越权漏洞来对标系统提权背后的逻辑，一种是直接获取到系统权限（比如ms17-010），一种是未授权使用管理员的某些权限（比如<a href="https://thehackernews.com/2018/12/windows-zero-day-exploit.html" target="_blank" rel="noopener">Windows低权限用户任意文件读取</a>），有点类似与水平跟垂直的区别吧，当然Windows跟Linux之间也会是有点区别</p>
+<h2><span id="windows">Windows</span></h2><p>Windows的提权主要的就是利用漏洞EXP、获取高权限用户信息、获取弱文件夹信息</p>
 <p>但是在做之前也还是要收集下这台主机的一些信息，比如说端口、进程、网络、本地缓存文件（如浏览器、WiFi保存的密码）、跟其他主机的路由、arp表等等</p>
-<h3 id="漏洞提权"><a href="#漏洞提权" class="headerlink" title="漏洞提权"></a>漏洞提权</h3><p>在Windows的漏洞中总会出现一些能够直接获取权限的漏洞，客户没打对应的补丁然后网上又有公开的EXP的情况下，能够直接拿来利用，前提是需要先确认用户的系统版本信息以及打的补丁编号，这个我们能通过systeminfo来看到<br><img src="https://ftp.bmp.ovh/imgs/2020/03/f44376a481f84f90.png" alt=""><br>Windows10 10.0.18362 并且补丁打的情况就很清楚了<br>当然也可以直接使用wmic qfe get Caption,Description,HotFixID,InstalledOn来直接获取打补丁的情况<br><img src="https://ftp.bmp.ovh/imgs/2020/03/099cb95e86fbdb8c.png" alt=""><br>这种还能够知道大致的一个补丁情况，什么时候安装的等等<br>网上也有那种已经做好的拿来对比补丁号跟版本的脚本</p>
-<h3 id="获取高权限用户信息提权"><a href="#获取高权限用户信息提权" class="headerlink" title="获取高权限用户信息提权"></a>获取高权限用户信息提权</h3><p>这种我也不知道有没有种专门的词汇去描述，但是大家在做渗透的时候都会做过这么一个场景的吧，一个满目疮痍的网站（asp+mssql类似），你通过fckeditor之类的模板直接绕过了黑名单，上传了shell并且拿到权限，发现是个普通用户，这时候大家肯定会想着，去尝试找一下数据库的账户密码来测试下数据库的权限，因为可能web容器我们赋予的只是一个普通用户的权限，但是数据库可能会有更高的权限（说白了就是权限管控并没有做完全），我们这时候就会去找web目录下的.config文件，那里面会有mssql的数据库账号密码，在确认站库不分离的情况下，我们可能能够利用这个方法，获取到更高的权限<br><img src="https://ftp.bmp.ovh/imgs/2020/03/dea9a7748b3aacf0.png" alt=""></p>
-<h3 id="dll文件劫持"><a href="#dll文件劫持" class="headerlink" title="dll文件劫持"></a>dll文件劫持</h3><p>这是对dll文件劫持的官方解释<br>“当应用程序动态加载动态链接库而不指定完全限定的路径名时，Windows会尝试通过以特定顺序搜索定义明确的目录集来查找DLL。如果攻击者获得了DLL搜索路径上目录之一的控制权，则可以将DLL的恶意副本放置在该目录中。有时称为DLL预加载攻击或二进制植入攻击。如果系统在搜索受感染的目录之前未找到DLL的合法副本，则它将加载恶意DLL。如果应用程序以管理员权限运行，则攻击者可能会成功进行本地特权提升。”<br>当然dll劫持也是比较常用在权限维持这部分的<br>因此，如果应用程序仅按其名称加载DLL，它将按照下面的搜索顺序（32位操作系统）查找该库<br>从中加载应用程序的目录<br>32位系统目录（C：\ Windows \ System32）<br>16位系统目录（C：\ Windows \ System）<br>Windows目录（C：\ Windows）<br>当前工作目录（CWD）<br>PATH环境变量中的目录（系统然后是用户）</p>
+<h3><span id="漏洞提权">漏洞提权</span></h3><p>在Windows的漏洞中总会出现一些能够直接获取权限的漏洞，客户没打对应的补丁然后网上又有公开的EXP的情况下，能够直接拿来利用，前提是需要先确认用户的系统版本信息以及打的补丁编号，这个我们能通过systeminfo来看到<br><img src="https://ftp.bmp.ovh/imgs/2020/03/f44376a481f84f90.png" alt><br>Windows10 10.0.18362 并且补丁打的情况就很清楚了<br>当然也可以直接使用wmic qfe get Caption,Description,HotFixID,InstalledOn来直接获取打补丁的情况<br><img src="https://ftp.bmp.ovh/imgs/2020/03/099cb95e86fbdb8c.png" alt><br>这种还能够知道大致的一个补丁情况，什么时候安装的等等<br>网上也有那种已经做好的拿来对比补丁号跟版本的脚本</p>
+<h3><span id="获取高权限用户信息提权">获取高权限用户信息提权</span></h3><p>这种我也不知道有没有种专门的词汇去描述，但是大家在做渗透的时候都会做过这么一个场景的吧，一个满目疮痍的网站（asp+mssql类似），你通过fckeditor之类的模板直接绕过了黑名单，上传了shell并且拿到权限，发现是个普通用户，这时候大家肯定会想着，去尝试找一下数据库的账户密码来测试下数据库的权限，因为可能web容器我们赋予的只是一个普通用户的权限，但是数据库可能会有更高的权限（说白了就是权限管控并没有做完全），我们这时候就会去找web目录下的.config文件，那里面会有mssql的数据库账号密码，在确认站库不分离的情况下，我们可能能够利用这个方法，获取到更高的权限<br><img src="https://ftp.bmp.ovh/imgs/2020/03/dea9a7748b3aacf0.png" alt></p>
+<h3><span id="dll文件劫持">dll文件劫持</span></h3><p>这是对dll文件劫持的官方解释<br>“当应用程序动态加载动态链接库而不指定完全限定的路径名时，Windows会尝试通过以特定顺序搜索定义明确的目录集来查找DLL。如果攻击者获得了DLL搜索路径上目录之一的控制权，则可以将DLL的恶意副本放置在该目录中。有时称为DLL预加载攻击或二进制植入攻击。如果系统在搜索受感染的目录之前未找到DLL的合法副本，则它将加载恶意DLL。如果应用程序以管理员权限运行，则攻击者可能会成功进行本地特权提升。”<br>当然dll劫持也是比较常用在权限维持这部分的<br>因此，如果应用程序仅按其名称加载DLL，它将按照下面的搜索顺序（32位操作系统）查找该库<br>从中加载应用程序的目录<br>32位系统目录（C：\ Windows \ System32）<br>16位系统目录（C：\ Windows \ System）<br>Windows目录（C：\ Windows）<br>当前工作目录（CWD）<br>PATH环境变量中的目录（系统然后是用户）</p>
 <p>所以在尝试dll劫持的时候我们可以关注三个方面<br>Windows下dll的查找顺序<br>dll本身存在问题<br>弱文件夹类型</p>
-<h4 id="Windows下dll的查找顺序"><a href="#Windows下dll的查找顺序" class="headerlink" title="Windows下dll的查找顺序"></a>Windows下dll的查找顺序</h4><p>在Windows DLL搜索顺序中，路径环境变量的目录是它最后执行的搜索，首先从系统变量path开始，然后是用户变量path。除非应用程序没有为其DLL使用完全限定的路径名，否则即使存在某些缓解措施，它也将尝试通过搜索顺序查找DLL。<br>这是本人win10 系统变量path<br><img src="https://ftp.bmp.ovh/imgs/2020/03/3afffb7b142a57cc.png" alt=""><br>用户变量path<br><img src="https://ftp.bmp.ovh/imgs/2020/03/92f77216aa5ffbf8.png" alt=""></p>
-<h4 id="dll本身可能存在问题"><a href="#dll本身可能存在问题" class="headerlink" title="dll本身可能存在问题"></a>dll本身可能存在问题</h4><p>这里因为涉及对dll文件的静态分析不大会我只是大概讲一下<br>大部分的服务（services.msc）都是用system权限配置的，那么如果我们能定位到某些服务他所加载的dll文件的话，不管他是限制了加载该dll文件的目录，还是像上面说的通过顺序查找，我们都有可能去对应的目录下伪造一个该dll文件，让服务已system权限加载（不过如果服务都会去指定dll文件的加载目录的话，那我们低权限下也应该没办法去写入文件了）</p>
-<h4 id="弱文件夹类型"><a href="#弱文件夹类型" class="headerlink" title="弱文件夹类型"></a>弱文件夹类型</h4><p>那么当我们通过以上的收集知道了，”windows的部分服务”存在问题，不指定目录来加载dll文件，然后又知道了该计算机他搜索dll文件的顺序（系统变量path–&gt;用户变量path）那么我们就能构建一个Windows服务需要加载的恶意dll文件，如果存在该文件，看他放哪了，不存在就放path中<br>“当应用程序安装在根目录中并将其路径添加到系统路径环境时，这为可能具有DLL劫持漏洞的大量应用程序打开了攻击面。一种情况是软件被推到机器上，例如Marimba，Landesk等，它们使用以系统特权运行的Windows服务来安装软件。由于它运行时带有系统特权软件，该软件已推送到Perl，Python或Ruby等机器上，因此，如果已在软件包中设置了添加路径，并且默认情况下将其安装在根目录上，则它将添加到系统路径环境中。也可以是IT支持人员以用户的管理员权限安装软件。”</p>
+<h4><span id="windows下dll的查找顺序">Windows下dll的查找顺序</span></h4><p>在Windows DLL搜索顺序中，路径环境变量的目录是它最后执行的搜索，首先从系统变量path开始，然后是用户变量path。除非应用程序没有为其DLL使用完全限定的路径名，否则即使存在某些缓解措施，它也将尝试通过搜索顺序查找DLL。<br>这是本人win10 系统变量path<br><img src="https://ftp.bmp.ovh/imgs/2020/03/3afffb7b142a57cc.png" alt><br>用户变量path<br><img src="https://ftp.bmp.ovh/imgs/2020/03/92f77216aa5ffbf8.png" alt></p>
+<h4><span id="dll本身可能存在问题">dll本身可能存在问题</span></h4><p>这里因为涉及对dll文件的静态分析不大会我只是大概讲一下<br>大部分的服务（services.msc）都是用system权限配置的，那么如果我们能定位到某些服务他所加载的dll文件的话，不管他是限制了加载该dll文件的目录，还是像上面说的通过顺序查找，我们都有可能去对应的目录下伪造一个该dll文件，让服务已system权限加载（不过如果服务都会去指定dll文件的加载目录的话，那我们低权限下也应该没办法去写入文件了）</p>
+<h4><span id="弱文件夹类型">弱文件夹类型</span></h4><p>那么当我们通过以上的收集知道了，”windows的部分服务”存在问题，不指定目录来加载dll文件，然后又知道了该计算机他搜索dll文件的顺序（系统变量path–&gt;用户变量path）那么我们就能构建一个Windows服务需要加载的恶意dll文件，如果存在该文件，看他放哪了，不存在就放path中<br>“当应用程序安装在根目录中并将其路径添加到系统路径环境时，这为可能具有DLL劫持漏洞的大量应用程序打开了攻击面。一种情况是软件被推到机器上，例如Marimba，Landesk等，它们使用以系统特权运行的Windows服务来安装软件。由于它运行时带有系统特权软件，该软件已推送到Perl，Python或Ruby等机器上，因此，如果已在软件包中设置了添加路径，并且默认情况下将其安装在根目录上，则它将添加到系统路径环境中。也可以是IT支持人员以用户的管理员权限安装软件。”</p>
 <p>其实所谓的弱文件夹的类型，可以理解为一个程序、服务他是由系统权限执行的，但是他执行文件的目录没有配置好，导致了低权限用户能够在那个执行目录下放置恶意的exe、dll等pe文件；那么配合上面加载dll的顺序我们大概就知道了，如果该程序、服务的工作目录、或者用户、环境变量中权限没做好，导致普通用户能够写入文件，并诱导该服务、程序重启（一般就是想办法诱导服务器重启），那么系统就能以system权限加载我们的dll文件了</p>
-<p>但是一般来说系统、用户变量都是c:\windows这种目录，低权限用户是无法写入的，这时候我们就需要通过以上路径的写入权限来判断哪些目录是允许低权限用户写入文件的，就比如上图中系统变量路劲，system根目录这些不可能会让低权限用户写入，但是用户变量中C:/python27这种的可能会允许普通用户去写入权限<br><img src="https://ftp.bmp.ovh/imgs/2020/03/b99057fb71432bb1.png" alt=""><br><img src="https://ftp.bmp.ovh/imgs/2020/03/f0445ab525916b25.png" alt=""><br>这边来看权限都设置的很死啊，不过你的目标大可能是Windows server2008这类的服务器，并且里面还会带些方便运维的程序，如果部署的时候图方便，不放在Windows系统目录下的话还是有利用的可能性的</p>
+<p>但是一般来说系统、用户变量都是c:\windows这种目录，低权限用户是无法写入的，这时候我们就需要通过以上路径的写入权限来判断哪些目录是允许低权限用户写入文件的，就比如上图中系统变量路劲，system根目录这些不可能会让低权限用户写入，但是用户变量中C:/python27这种的可能会允许普通用户去写入权限<br><img src="https://ftp.bmp.ovh/imgs/2020/03/b99057fb71432bb1.png" alt><br><img src="https://ftp.bmp.ovh/imgs/2020/03/f0445ab525916b25.png" alt><br>这边来看权限都设置的很死啊，不过你的目标大可能是Windows server2008这类的服务器，并且里面还会带些方便运维的程序，如果部署的时候图方便，不放在Windows系统目录下的话还是有利用的可能性的</p>
 
       
     </div>
