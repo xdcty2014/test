@@ -20,22 +20,25 @@
     var CONFIG = {"hostname":"yoursite.com","root":"/","scheme":"Gemini","version":"7.7.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta name="description" content="有关提权的总结 Windows 漏洞提权 获取高权限用户信息提权 dll文件劫持 Windows下dll的查找顺序 dll本身可能存在问题 弱文件夹类型          有关提权的总结主要是想对看到的一些文章做点总结提权广义上来讲其实就是尝试从低权限到高权限的一个过程，或者说通过非正常手法获取到不属于自己权限的行为。我个人更倾向与web漏洞中的越权漏洞来对标系统提权背后的逻辑，一种是直接获">
+  <meta name="description" content="有关提权的总结 Windows 漏洞提权 获取高权限用户信息提权 服务配置有误 dll文件劫持 Windows下dll的查找顺序 dll本身可能存在问题 弱文件夹类型 dll文件tips以及修复建议   其他应用劫持        有关提权的总结主要是想对看到的一些文章做点总结提权广义上来讲其实就是尝试从低权限到高权限的一个过程，或者说通过非正常手法获取到不属于自己权限的行为。我个人更倾向与">
 <meta property="og:type" content="article">
 <meta property="og:title" content="提权总结">
 <meta property="og:url" content="http://yoursite.com/2020/03/08/%E6%9C%89%E5%85%B3%E6%8F%90%E6%9D%83/index.html">
 <meta property="og:site_name" content="xdcty">
-<meta property="og:description" content="有关提权的总结 Windows 漏洞提权 获取高权限用户信息提权 dll文件劫持 Windows下dll的查找顺序 dll本身可能存在问题 弱文件夹类型          有关提权的总结主要是想对看到的一些文章做点总结提权广义上来讲其实就是尝试从低权限到高权限的一个过程，或者说通过非正常手法获取到不属于自己权限的行为。我个人更倾向与web漏洞中的越权漏洞来对标系统提权背后的逻辑，一种是直接获">
+<meta property="og:description" content="有关提权的总结 Windows 漏洞提权 获取高权限用户信息提权 服务配置有误 dll文件劫持 Windows下dll的查找顺序 dll本身可能存在问题 弱文件夹类型 dll文件tips以及修复建议   其他应用劫持        有关提权的总结主要是想对看到的一些文章做点总结提权广义上来讲其实就是尝试从低权限到高权限的一个过程，或者说通过非正常手法获取到不属于自己权限的行为。我个人更倾向与">
 <meta property="og:locale" content="cn">
 <meta property="og:image" content="https://ftp.bmp.ovh/imgs/2020/03/f44376a481f84f90.png">
 <meta property="og:image" content="https://ftp.bmp.ovh/imgs/2020/03/099cb95e86fbdb8c.png">
 <meta property="og:image" content="https://ftp.bmp.ovh/imgs/2020/03/dea9a7748b3aacf0.png">
+<meta property="og:image" content="https://ftp.bmp.ovh/imgs/2020/03/96ee08646abe564f.png">
+<meta property="og:image" content="https://ftp.bmp.ovh/imgs/2020/03/ab58314ff6f0dc12.png">
+<meta property="og:image" content="https://ftp.bmp.ovh/imgs/2020/03/6f6baf08bd51fb29.png">
 <meta property="og:image" content="https://ftp.bmp.ovh/imgs/2020/03/3afffb7b142a57cc.png">
 <meta property="og:image" content="https://ftp.bmp.ovh/imgs/2020/03/92f77216aa5ffbf8.png">
 <meta property="og:image" content="https://ftp.bmp.ovh/imgs/2020/03/b99057fb71432bb1.png">
 <meta property="og:image" content="https://ftp.bmp.ovh/imgs/2020/03/f0445ab525916b25.png">
 <meta property="article:published_time" content="2020-03-07T16:23:42.000Z">
-<meta property="article:modified_time" content="2020-03-22T07:53:42.018Z">
+<meta property="article:modified_time" content="2020-03-22T09:01:12.569Z">
 <meta property="article:author" content="cty">
 <meta property="article:tag" content="提权">
 <meta property="article:tag" content="windows">
@@ -189,7 +192,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">Bearbeitet am</span>
-                <time title="Geändert am: 2020-03-22 15:53:42" itemprop="dateModified" datetime="2020-03-22T15:53:42+08:00">2020-03-22</time>
+                <time title="Geändert am: 2020-03-22 17:01:12" itemprop="dateModified" datetime="2020-03-22T17:01:12+08:00">2020-03-22</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -219,12 +222,15 @@
 <li><a href="#windows">Windows</a><ul>
 <li><a href="#漏洞提权">漏洞提权</a></li>
 <li><a href="#获取高权限用户信息提权">获取高权限用户信息提权</a></li>
+<li><a href="#服务配置有误">服务配置有误</a></li>
 <li><a href="#dll文件劫持">dll文件劫持</a><ul>
 <li><a href="#windows下dll的查找顺序">Windows下dll的查找顺序</a></li>
 <li><a href="#dll本身可能存在问题">dll本身可能存在问题</a></li>
 <li><a href="#弱文件夹类型">弱文件夹类型</a></li>
+<li><a href="#dll文件tips以及修复建议">dll文件tips以及修复建议</a></li>
 </ul>
 </li>
+<li><a href="#其他应用劫持">其他应用劫持</a></li>
 </ul>
 </li>
 </ul>
@@ -237,13 +243,26 @@
 <p>但是在做之前也还是要收集下这台主机的一些信息，比如说端口、进程、网络、本地缓存文件（如浏览器、WiFi保存的密码）、跟其他主机的路由、arp表等等</p>
 <h3><span id="漏洞提权">漏洞提权</span></h3><p>在Windows的漏洞中总会出现一些能够直接获取权限的漏洞，客户没打对应的补丁然后网上又有公开的EXP的情况下，能够直接拿来利用，前提是需要先确认用户的系统版本信息以及打的补丁编号，这个我们能通过systeminfo来看到<br><img src="https://ftp.bmp.ovh/imgs/2020/03/f44376a481f84f90.png" alt><br>Windows10 10.0.18362 并且补丁打的情况就很清楚了<br>当然也可以直接使用wmic qfe get Caption,Description,HotFixID,InstalledOn来直接获取打补丁的情况<br><img src="https://ftp.bmp.ovh/imgs/2020/03/099cb95e86fbdb8c.png" alt><br>这种还能够知道大致的一个补丁情况，什么时候安装的等等<br>网上也有那种已经做好的拿来对比补丁号跟版本的脚本</p>
 <h3><span id="获取高权限用户信息提权">获取高权限用户信息提权</span></h3><p>这种我也不知道有没有种专门的词汇去描述，但是大家在做渗透的时候都会做过这么一个场景的吧，一个满目疮痍的网站（asp+mssql类似），你通过fckeditor之类的模板直接绕过了黑名单，上传了shell并且拿到权限，发现是个普通用户，这时候大家肯定会想着，去尝试找一下数据库的账户密码来测试下数据库的权限，因为可能web容器我们赋予的只是一个普通用户的权限，但是数据库可能会有更高的权限（说白了就是权限管控并没有做完全），我们这时候就会去找web目录下的.config文件，那里面会有mssql的数据库账号密码，在确认站库不分离的情况下，我们可能能够利用这个方法，获取到更高的权限<br><img src="https://ftp.bmp.ovh/imgs/2020/03/dea9a7748b3aacf0.png" alt></p>
+<h3><span id="服务配置有误">服务配置有误</span></h3><p>我们能够通过sc query来查看当前所有的服务<br><img src="https://ftp.bmp.ovh/imgs/2020/03/96ee08646abe564f.png" alt><br>然后进一步根据Windows工具集里的accesschk.exe来做qu权限判断<br>accesschk.exe -ucqv 服务名<br><img src="https://ftp.bmp.ovh/imgs/2020/03/ab58314ff6f0dc12.png" alt><br>像这种只允许system跟administrators来调用的就没办法了<br>这里用一个网上比较老的例子来看，大概是xp sp0的下的问题<br><img src="https://ftp.bmp.ovh/imgs/2020/03/6f6baf08bd51fb29.png" alt><br>这里就可以看到这个服务低权限用户也是也是调用的（那个power user就是低权限用户）<br>然后我们大概了解了下这个服务本身是由system调用的（在system目录下）<br>那么我们利用这个服务把shell反弹出去的权限就是system权限了</p>
 <h3><span id="dll文件劫持">dll文件劫持</span></h3><p>这是对dll文件劫持的官方解释<br>“当应用程序动态加载动态链接库而不指定完全限定的路径名时，Windows会尝试通过以特定顺序搜索定义明确的目录集来查找DLL。如果攻击者获得了DLL搜索路径上目录之一的控制权，则可以将DLL的恶意副本放置在该目录中。有时称为DLL预加载攻击或二进制植入攻击。如果系统在搜索受感染的目录之前未找到DLL的合法副本，则它将加载恶意DLL。如果应用程序以管理员权限运行，则攻击者可能会成功进行本地特权提升。”<br>当然dll劫持也是比较常用在权限维持这部分的<br>因此，如果应用程序仅按其名称加载DLL，它将按照下面的搜索顺序（32位操作系统）查找该库<br>从中加载应用程序的目录<br>32位系统目录（C：\ Windows \ System32）<br>16位系统目录（C：\ Windows \ System）<br>Windows目录（C：\ Windows）<br>当前工作目录（CWD）<br>PATH环境变量中的目录（系统然后是用户）</p>
 <p>所以在尝试dll劫持的时候我们可以关注三个方面<br>Windows下dll的查找顺序<br>dll本身存在问题<br>弱文件夹类型</p>
 <h4><span id="windows下dll的查找顺序">Windows下dll的查找顺序</span></h4><p>在Windows DLL搜索顺序中，路径环境变量的目录是它最后执行的搜索，首先从系统变量path开始，然后是用户变量path。除非应用程序没有为其DLL使用完全限定的路径名，否则即使存在某些缓解措施，它也将尝试通过搜索顺序查找DLL。<br>这是本人win10 系统变量path<br><img src="https://ftp.bmp.ovh/imgs/2020/03/3afffb7b142a57cc.png" alt><br>用户变量path<br><img src="https://ftp.bmp.ovh/imgs/2020/03/92f77216aa5ffbf8.png" alt></p>
 <h4><span id="dll本身可能存在问题">dll本身可能存在问题</span></h4><p>这里因为涉及对dll文件的静态分析不大会我只是大概讲一下<br>大部分的服务（services.msc）都是用system权限配置的，那么如果我们能定位到某些服务他所加载的dll文件的话，不管他是限制了加载该dll文件的目录，还是像上面说的通过顺序查找，我们都有可能去对应的目录下伪造一个该dll文件，让服务已system权限加载（不过如果服务都会去指定dll文件的加载目录的话，那我们低权限下也应该没办法去写入文件了）</p>
-<h4><span id="弱文件夹类型">弱文件夹类型</span></h4><p>那么当我们通过以上的收集知道了，”windows的部分服务”存在问题，不指定目录来加载dll文件，然后又知道了该计算机他搜索dll文件的顺序（系统变量path–&gt;用户变量path）那么我们就能构建一个Windows服务需要加载的恶意dll文件，如果存在该文件，看他放哪了，不存在就放path中<br>“当应用程序安装在根目录中并将其路径添加到系统路径环境时，这为可能具有DLL劫持漏洞的大量应用程序打开了攻击面。一种情况是软件被推到机器上，例如Marimba，Landesk等，它们使用以系统特权运行的Windows服务来安装软件。由于它运行时带有系统特权软件，该软件已推送到Perl，Python或Ruby等机器上，因此，如果已在软件包中设置了添加路径，并且默认情况下将其安装在根目录上，则它将添加到系统路径环境中。也可以是IT支持人员以用户的管理员权限安装软件。”</p>
+<h4><span id="弱文件夹类型">弱文件夹类型</span></h4><p>那么当我们通过以上的收集知道了，”windows的部分服务”存在问题，不指定目录来加载dll文件，然后又知道了该计算机他搜索dll文件的顺序（系统变量path–&gt;用户变量path）那么我们就能构建一个Windows服务需要加载的恶意dll文件，如果存在该文件，看他放哪了，不存在就放path中</p>
+<p>“当应用程序安装在根目录中并将其路径添加到系统路径环境时，这为可能具有DLL劫持漏洞的大量应用程序打开了攻击面。一种情况是软件被推到机器上，例如Marimba，Landesk等，它们使用以系统特权运行的Windows服务来安装软件。由于它运行时带有系统特权软件，该软件已推送到Perl，Python或Ruby等机器上，因此，如果已在软件包中设置了添加路径，并且默认情况下将其安装在根目录上，则它将添加到系统路径环境中。也可以是IT支持人员以用户的管理员权限安装软件。”</p>
 <p>其实所谓的弱文件夹的类型，可以理解为一个程序、服务他是由系统权限执行的，但是他执行文件的目录没有配置好，导致了低权限用户能够在那个执行目录下放置恶意的exe、dll等pe文件；那么配合上面加载dll的顺序我们大概就知道了，如果该程序、服务的工作目录、或者用户、环境变量中权限没做好，导致普通用户能够写入文件，并诱导该服务、程序重启（一般就是想办法诱导服务器重启），那么系统就能以system权限加载我们的dll文件了</p>
 <p>但是一般来说系统、用户变量都是c:\windows这种目录，低权限用户是无法写入的，这时候我们就需要通过以上路径的写入权限来判断哪些目录是允许低权限用户写入文件的，就比如上图中系统变量路劲，system根目录这些不可能会让低权限用户写入，但是用户变量中C:/python27这种的可能会允许普通用户去写入权限<br><img src="https://ftp.bmp.ovh/imgs/2020/03/b99057fb71432bb1.png" alt><br><img src="https://ftp.bmp.ovh/imgs/2020/03/f0445ab525916b25.png" alt><br>这边来看权限都设置的很死啊，不过你的目标大可能是Windows server2008这类的服务器，并且里面还会带些方便运维的程序，如果部署的时候图方便，不放在Windows系统目录下的话还是有利用的可能性的</p>
+<h4><span id="dll文件tips以及修复建议">dll文件tips以及修复建议</span></h4><p>这里先提到一些困难会存在问题的dll<br>可以在Windows 7（32/64）上加以利用<br>IKE和AuthIP IPsec密钥模块（IKEEXT）– wlbsctrl.dll </p>
+<p>Windows Media Center接收器服务（ehRecvr）– ehETW.dll<br>Windows Media Center调度程序服务（ehSched）– ehETW.dll<br>Windows Media Center Services启动类型设置为手动，并且状态未启动，只会给我们提供网络服务特权，因此我看不到它有太多用处，尤其是有限的特权。但是，可以通过某些计划任务临时启动它。<br>schtasks.exe / run / I / TN“ \ Microsoft \ Windows \ Media Center \ mcupdate”<br>schtasks.exe / run / I / TN“ \ Microsoft \ Windows \ Media Center \ MediaCenterRecoveryTask”<br>schtasks.exe / run / I / TN“ \ Microsoft \ Windows \ Media Center \ ActivateWindowsSearch”</p>
+<p>Windows XP的这些服务容易受到攻击</p>
+<p>自动更新（wuauserv）– ifsproxy.dll<br>远程桌面帮助会话管理器（RDSessMgr）– SalemHook.dll<br>远程访问连接管理器（RasMan）– ipbootp.dll<br>Windows管理规范（winmgmt）– wbemcore.dll</p>
+<p>可能安装的其他服务也容易受到攻击</p>
+<p>音频服务（STacSV）– SFFXComm.dll SFCOM.DLL<br>英特尔（R）快速存储技术（IAStorDataMgrSvc）– DriverSim.dll<br>瞻博网络统一网络服务（JuniperAccessService）– dsLogService.dll<br>封装企业代理– SDDisk.dll </p>
+<p>windows7之后的8之类的就没有类似不安全的服务了</p>
+<p>修复建议<br>SafeDllSearchMode<br>默认情况下启用安全DLL搜索模式[4]。要禁用此功能，我们可以创建一个DWORD名称SafeDllSearchMode，其值为0<br>[HKEY_LOCAL_MACHINE \ SYSTEM \ CurrentControlSet \ Control \ Session Manager]<br>如果启用了SafeDllSearchMode，则搜索顺序如下：<br>从中加载应用程序的目录<br>32位系统目录（C：\ Windows \ System32）<br>16位系统目录（C：\ Windows \ System）<br>Windows目录（C：\ Windows）<br>当前工作目录（CWD）<br>PATH环境变量中的目录（系统然后是用户）</p>
+<p>如果SafeDllSearchMode被禁用，则搜索顺序如下：<br>从中加载应用程序的目录<br>当前工作目录（CWD）[在列表中上移]<br>32位系统目录（C：\ Windows \ System32）<br>16位系统目录（C：\ Windows \ System）<br>Windows目录（C：\ Windows）<br>PATH环境变量中的目录（系统然后是用户）<br>调用SetDllDirectory（“”）或SetDllDirectory（“ C：\ program files \ MyApp \”）将禁用SafeDllSearchMode，并使用针对SetDllDirectory描述的搜索顺序。</p>
+<h3><span id="其他应用劫持">其他应用劫持</span></h3><p>这个就是相当于在dll文件劫持上的拓展，比如当我们在信息收集的时候发现某些进程在计划任务或者在哪里一直在运行着，很可能是通过管理员权限运行的，那这时候我们到他的执行目录下，看是否存在写文件的权限，如果有的话，直接生成一个恶意的执行程序替换掉原先的程序，也能达到一个提权的作用<br>主要的目录在Windows服务，计划任务和启动任务的path</p>
+<p>tips：accesschk查找c盘下弱文件夹<br>accesschk.exe -uwdqs Users c:<br>accesschk.exe -uwdqs “Authenticated Users” c:<br>查找c盘目录里的弱文件<br>accesschk.exe -uwqs Users c:*.*<br>accesschk.exe -uwqs “Authenticated Users” c:*.*<br>Authenticated Users代表的是一个安全组，而非用户。这个组并不具体指代某一具体的用户，而是直接代表所有已经顺利通过了身份验证的用户。系统的某些权限机制需要针对已经通过身份验证的用户来应用，因此使用这一用户组加以代表。里面是有administrators等用户的</p>
 
     </div>
 
@@ -320,7 +339,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#null"><span class="nav-number">1.</span> <span class="nav-text">有关提权的总结</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#null"><span class="nav-number">1.1.</span> <span class="nav-text">Windows</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#null"><span class="nav-number">1.1.1.</span> <span class="nav-text">漏洞提权</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#null"><span class="nav-number">1.1.2.</span> <span class="nav-text">获取高权限用户信息提权</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#null"><span class="nav-number">1.1.3.</span> <span class="nav-text">dll文件劫持</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#null"><span class="nav-number">1.1.3.1.</span> <span class="nav-text">Windows下dll的查找顺序</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#null"><span class="nav-number">1.1.3.2.</span> <span class="nav-text">dll本身可能存在问题</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#null"><span class="nav-number">1.1.3.3.</span> <span class="nav-text">弱文件夹类型</span></a></li></ol></li></ol></li></ol></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#null"><span class="nav-number">1.</span> <span class="nav-text">有关提权的总结</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#null"><span class="nav-number">1.1.</span> <span class="nav-text">Windows</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#null"><span class="nav-number">1.1.1.</span> <span class="nav-text">漏洞提权</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#null"><span class="nav-number">1.1.2.</span> <span class="nav-text">获取高权限用户信息提权</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#null"><span class="nav-number">1.1.3.</span> <span class="nav-text">服务配置有误</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#null"><span class="nav-number">1.1.4.</span> <span class="nav-text">dll文件劫持</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#null"><span class="nav-number">1.1.4.1.</span> <span class="nav-text">Windows下dll的查找顺序</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#null"><span class="nav-number">1.1.4.2.</span> <span class="nav-text">dll本身可能存在问题</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#null"><span class="nav-number">1.1.4.3.</span> <span class="nav-text">弱文件夹类型</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#null"><span class="nav-number">1.1.4.4.</span> <span class="nav-text">dll文件tips以及修复建议</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#null"><span class="nav-number">1.1.5.</span> <span class="nav-text">其他应用劫持</span></a></li></ol></li></ol></li></ol></div>
       </div>
       <!--/noindex-->
 
