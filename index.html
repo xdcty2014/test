@@ -460,7 +460,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-03-29 20:28:46" itemprop="dateModified" datetime="2020-03-29T20:28:46+08:00">2020-03-29</time>
+                <time title="修改时间：2020-03-29 20:45:45" itemprop="dateModified" datetime="2020-03-29T20:45:45+08:00">2020-03-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -487,13 +487,13 @@
 
 <ul>
 <li><a href="#命令执行bypass">命令执行bypass</a><ul>
-<li><a href="#linux变量替换配合双引号">Linux变量替换${}配合双引号</a></li>
+<li><a href="#linux变量替换配合双引号-base64">Linux变量替换${}配合双引号 || base64</a></li>
 </ul>
 </li>
 </ul>
 <!-- tocstop -->
 
-<h1><span id="命令执行bypass">命令执行bypass</span></h1><h2><span id="linux变量替换配合双引号">Linux变量替换${}配合双引号</span></h2><p>Linux下能够用${}做变量替换，他又两个特点能够在我们的bypass当中采用</p>
+<h1><span id="命令执行bypass">命令执行bypass</span></h1><h2><span id="linux变量替换配合双引号-base64">Linux变量替换${}配合双引号  || base64</span></h2><p>Linux下能够用${}做变量替换，他又两个特点能够在我们的bypass当中采用</p>
 <blockquote>
 </blockquote>
 <p>1.在shell中能够直接插入而不报错<br>2.若替换的变量为空，那么他自身也为空<br><img src="https://ftp.bmp.ovh/imgs/2020/03/3ea8c06fa43a84db.png" alt></p>
@@ -501,6 +501,7 @@
 <p>回到命令本身正常读密码可以用的命令一般有cat、tail、nl、head、less<br><img src="https://ftp.bmp.ovh/imgs/2020/03/3221ba2b4f45c1ec.png" alt></p>
 <p>而命令中插入单双引号本身不会影响Linux执行命令<br><img src="https://ftp.bmp.ovh/imgs/2020/03/c41bcb96ed52b4ec.png" alt></p>
 <p>所以这三者做一个结合可以有效的作为waf bypass的字典<br><img src="https://ftp.bmp.ovh/imgs/2020/03/7b57ccfccb9fa4be.png" alt></p>
+<p>base64解码其实也是一种绕waf的思路，但是如果base64解码后特殊字符会url转码，所以可能不好添加进千层饼里<br><img src="https://ftp.bmp.ovh/imgs/2020/03/9b10090c50bc667a.png" alt><br><img src="https://ftp.bmp.ovh/imgs/2020/03/ec18bf98c1f99ede.png" alt></p>
 
       
     </div>
