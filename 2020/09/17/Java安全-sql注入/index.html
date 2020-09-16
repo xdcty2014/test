@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"yoursite.com","root":"/","scheme":"Gemini","version":"7.7.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="Java安全–sql注入 java.sql.Statement java.sql.PrepareStatement Mybatis concat函数        Java安全–sql注入Java中操作sql语句的方法主要有几种java.sql.Statementjava.sql.PrepareStatement使用第三方 ORM 框架 —— MyBatis 或 Hibernate 先说第一">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java安全-sql注入">
+<meta property="og:url" content="http://yoursite.com/2020/09/17/Java%E5%AE%89%E5%85%A8-sql%E6%B3%A8%E5%85%A5/index.html">
+<meta property="og:site_name" content="xdcty">
+<meta property="og:description" content="Java安全–sql注入 java.sql.Statement java.sql.PrepareStatement Mybatis concat函数        Java安全–sql注入Java中操作sql语句的方法主要有几种java.sql.Statementjava.sql.PrepareStatement使用第三方 ORM 框架 —— MyBatis 或 Hibernate 先说第一">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-09-17T08:23:42.000Z">
+<meta property="article:modified_time" content="2020-09-16T18:40:22.207Z">
+<meta property="article:author" content="cty">
+<meta property="article:tag" content="Java">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://yoursite.com/2020/09/17/Java%E5%AE%89%E5%85%A8-sql%E6%B3%A8%E5%85%A5/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true
+  };
+</script>
+
+  <title>Java安全-sql注入 | xdcty</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">xdcty</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">whoami</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/09/17/Java%E5%AE%89%E5%85%A8-sql%E6%B3%A8%E5%85%A5/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="cty">
+      <meta itemprop="description" content="whoami">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="xdcty">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Java安全-sql注入
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-09-17 16:23:42 / 修改时间：02:40:22" itemprop="dateCreated datePublished" datetime="2020-09-17T16:23:42+08:00">2020-09-17</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E4%BB%A3%E7%A0%81/" itemprop="url" rel="index"><span itemprop="name">代码</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <!-- toc -->
+
+<ul>
+<li><a href="#java安全-sql注入">Java安全–sql注入</a><ul>
+<li><a href="#javasqlstatement">java.sql.Statement</a></li>
+<li><a href="#javasqlpreparestatement">java.sql.PrepareStatement</a></li>
+<li><a href="#mybatis">Mybatis</a><ul>
+<li><a href="#concat函数">concat函数</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<!-- tocstop -->
+
+<h1><span id="java安全sql注入">Java安全–sql注入</span></h1><p>Java中操作sql语句的方法主要有几种<br>java.sql.Statement<br>java.sql.PrepareStatement<br>使用第三方 ORM 框架 —— MyBatis 或 Hibernate</p>
+<p>先说第一种</p>
+<h2><span id="javasqlstatement">java.sql.Statement</span></h2><p>java.sql.Statement跟php连接数据库的方式很像，就是实例化一个String类来作为sql查询语句带进后端数据库查<br>类似这种</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">String sql ="<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> <span class="keyword">user</span> <span class="keyword">WHERE</span> <span class="keyword">id</span> = <span class="string">'"+ id +"'</span><span class="string">";</span></span><br><span class="line"><span class="string">Statement statement = connection.createStatement();</span></span><br><span class="line"><span class="string">statement.execute(sql)；</span></span><br></pre></td></tr></table></figure>
+<p>这种没啥好说的，该注入注入吧，没救了</p>
+<h2><span id="javasqlpreparestatement">java.sql.PrepareStatement</span></h2><pre><code>第二种是java.sql.Statement的进阶版接口，他会对传参进行预编译，也就是java.sql.PrepareStatement</code></pre><p>它使用了sql语句中的占位符 ？ ，代替需要传入的参数，然后在传给数据库<br>大概是这样写的</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">String sql ="<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> <span class="keyword">user</span> <span class="keyword">WHERE</span> <span class="keyword">id</span> = ?<span class="string">";</span></span><br><span class="line"><span class="string">//预编译语句</span></span><br><span class="line"><span class="string">PreparedStatement preparedStatement = connection.prepareStatement(sql);</span></span><br><span class="line"><span class="string">//填入参数</span></span><br><span class="line"><span class="string">preparedStatement.setString(1,reqStuId);</span></span><br><span class="line"><span class="string">preparedStatement.executeQuery();</span></span><br></pre></td></tr></table></figure>
+
+<p>我理解的流程是首先设置需要传入sql语句中的内容为（preparedStatement.setString(1,reqStuId);）然后将要带入查询的占位符的内容进行编译，比如传入的参数是 ‘ or 1 # ，那么编译后的结果就是 ‘\ or 1 # ,’ 就无法起到闭合的作用，再加上占位符的内容需要自带带引号包裹，所以最后带入查询sql语句中的样子为</p>
+<pre><code>SELECT * FROM user WHERE id = &apos;&apos;\ or 1 #&apos;   </code></pre><p>就什么锤子都不能用了<br>但预编译会出现一种特殊情况导致绕过，即order by；比如</p>
+<pre><code>select * from user order by id </code></pre><p>   那这种情况下加入用预编译的手法就算是正常的传入参数也会变成  select * from user order by ‘id’  ；即把’id’放进数据库中查，这必然是查不出东西的;所以当传递的参数为字符串类型时会考虑使用硬编码的方式，即直接在代码中写死了order by后面的id值</p>
+<pre><code>    String column = &quot;id&quot;;
+    switch(column){
+        case &quot;id&quot;:
+            sql=&quot;select * from user order by id&quot;;
+            break;
+}</code></pre><p>当id定义为int类型（整型，不能加’）时就不会产生sql注入，因为java时强类型语言，前后端类型不一致会报错</p>
+<p>以上问题类似的还有group by等</p>
+<h2><span id="mybatis">Mybatis</span></h2><p>mybatis本身是apache的开源项目ibatis改名，是一个底层框架，对jdbc操作数据库的过程进行封装，让开发者主要精力在sql语句那边而不是类似创建连接等其他代码上</p>
+<p>大概的框架主要是</p>
+<ol>
+<li><p>提前配置好操作的sql语句</p>
+<p> <strong>SqlMapConfig.xml，此文件作为mybatis的全局配置文件，配置了mybatis的运行环境等信息。</strong></p>
+<p> <strong>mapper.xml文件即sql映射文件，文件中配置了操作数据库的sql语句。此文件需要在SqlMapConfig.xml中加载。</strong></p>
+</li>
+<li><p>建立会话</p>
+<p> 通过mybatis环境等配置信息构造SqlSessionFactory即会话工厂;<br> 由会话工厂创建sqlSession即会话，操作数据库需要通过sqlSession进行;<br> mybatis底层自定义了Executor执行器接口操作数据库，Executor接口有两个实现，一个是基本执行器、一个是缓存执行器;</p>
+</li>
+</ol>
+<p>**    Mapped Statement也是mybatis一个底层封装对象，它包装了mybatis配置信息及sql映射信息等。mapper.xml文件中一个sql对应一个Mapped Statement对象，sql的id即是Mapped statement的id。**</p>
+<ol start="3">
+<li><p>jdbs的解析处理</p>
+<p> Mapped Statement对sql执行输入参数进行定义，包括HashMap、基本类型、pojo，Executor通过Mapped Statement在执行sql前将输入的java对象映射至sql中，输入参数映射就是jdbc编程中对preparedStatement设置参数。</p>
+<p> Mapped Statement对sql执行输出结果进行定义，包括HashMap、基本类型、pojo，Executor通过Mapped Statement在执行sql后将输出结果映射至java对象中，输出结果映射过程相当于jdbc编程中对结果的解析处理过程。</p>
+</li>
+</ol>
+<p>总结起来mybatis就是七个步骤</p>
+<ol>
+<li>加载核心配置文件SqlMapConfig.xml </li>
+<li>创建SqlSessionFactoryBuilder对象 </li>
+<li>创建SqlSessionFactory对象（2,3可以写一起） </li>
+<li>创建SqlSession对象 </li>
+<li>执行SqlSession对象执行查询，获取结果User </li>
+<li>打印结果 </li>
+<li>释放资源</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">packagecom.ben.test;</span><br><span class="line">importcom.ben.domain.User;</span><br><span class="line">importorg.apache.ibatis.io.Resources;</span><br><span class="line">importorg.apache.ibatis.session.SqlSession;</span><br><span class="line">importorg.apache.ibatis.session.SqlSessionFactory;</span><br><span class="line">importorg.apache.ibatis.session.SqlSessionFactoryBuilder;</span><br><span class="line">importorg.junit.Test;</span><br><span class="line">importjava.io.IOException;</span><br><span class="line">importjava.io.InputStream;</span><br><span class="line">importjava.util.Date;</span><br><span class="line">importjava.util.List;</span><br><span class="line"></span><br><span class="line">publicclassMybatisTest&#123;</span><br><span class="line">    publicstaticvoidmain(String[] args)&#123;</span><br><span class="line"><span class="comment">//通过Id查询一个用户@Test</span></span><br><span class="line">    publicvoidtestSearchById()throwsIOException&#123;</span><br><span class="line">    <span class="comment">//1.读取配置文件</span></span><br><span class="line">        InputStream in = Resources.getResourceAsStream(<span class="string">"SqlMapConfig.xml"</span>);</span><br><span class="line">    <span class="comment">//2.创建SqlSessionFactory工厂</span></span><br><span class="line">        SqlSessionFactory sqlSessionFactory =newSqlSessionFactoryBuilder().build(in);</span><br><span class="line">    <span class="comment">//3.使用工厂生产SqlSession对象</span></span><br><span class="line">        SqlSession session = sqlSessionFactory.openSession();</span><br><span class="line">    <span class="comment">//4.执行Sql语句</span></span><br><span class="line">        User user = session.selectOne(<span class="string">"test.findUserById"</span>,<span class="number">10</span>);</span><br><span class="line">    <span class="comment">//5. 打印结果</span></span><br><span class="line">        System.out.println(user);</span><br><span class="line">    <span class="comment">//6.释放资源</span></span><br><span class="line">        session.close(); in.close();</span><br><span class="line">&#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>他的mapper.xml配置长大概这样</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version="1.0"encoding="UTF-8"?&gt;</span><br><span class="line">	//namespace：用来区别不同的类的名字</span><br><span class="line">&lt;mappernamespace="test"&gt;</span><br><span class="line">//通过id查询用户</span><br><span class="line">&lt;selectid="findUserById"parameterType="Integer"resultType="com.ben.domain.User"&gt;</span><br><span class="line">	<span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">user</span> <span class="keyword">where</span> <span class="keyword">id</span> = <span class="comment">#&#123;v&#125;</span></span><br><span class="line">&lt;/<span class="keyword">select</span>&gt;</span><br></pre></td></tr></table></figure>
+
+<p>这里面#{V} 告诉mybatis创建一个预处理语句参数，在JDBC中，这个的一个参数在Sql中会由一个“ ？”表示，并被传递到新的预处理语句中</p>
+<p>所以上面test类用jdbc的写法长这样</p>
+<pre><code>String findUserById =&quot;select * from user where id = ?&quot;;
+PreparedStatement ps = conn.prepareStatement(findUserById);
+ps.setInt(1,id);</code></pre><p>也就是预编译的java.sql.PrepareStatement写法</p>
+<p>namespace:用来区别不同的类的名字 </p>
+<p>id:标识映射文件中的sql，称为statement的id将sql语句封装到mappedStatement对象中，所以将id称为statement的id </p>
+<p>parameterType:指定输入参数的类型. </p>
+<p>resultType:指定输出结果类型。mybatis将sql查询结果的一行记录数据映射为resultType指定类型的对象。如果有多条数据，则分别进行映射，并把对象放到容器List中</p>
+<p>在mybatis中有两种内联参数（就当参数看吧）<br> 其中第一个#{}:一个占位符。preparedStatement向占位符中设置值，自动进行java类型和jdbc类型转换。#{}可以有效防止sql注入。 </p>
+<p>第二个${}:表示拼接sql串，通过${}可以将parameterType 传入的内容拼接在sql中且不进行jdbc类型转换。</p>
+<p>简单对应着jdbc中有预编译跟没预编译的两种手法，自然${}跟java.sql.Statement一样会产生注入的风险，#{}的底层就是java.sql.PrepareStatement那一套，所以order by那套问题也存在</p>
+<p>另外还多了一个问题，即模糊查询LIKE<br>LIKE操作符用于在WHERE子句中搜索列中的指定模式<br>常见的几种搜索方式</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> persons <span class="keyword">where</span> city <span class="keyword">like</span> <span class="string">'H%'</span>          <span class="comment">##查找H开头city的persons</span></span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> persons <span class="keyword">where</span> city <span class="keyword">like</span> <span class="string">'%H'</span>          <span class="comment">##查找H结尾city的persons</span></span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> persons <span class="keyword">where</span> city <span class="keyword">like</span> <span class="string">'%H%'</span>       <span class="comment">##查找包含H的city的persons</span></span><br></pre></td></tr></table></figure>
+
+<p>一般用like语句的时候都是用${}的内联参数，因为如果用#{}的话，sql的xml中就是这样写的</p>
+<pre><code>select * from user where username like &apos;#${value}%&apos;</code></pre><p>转换成实际的操作语句就会变成</p>
+<pre><code>select * from user where username like &apos;&apos;value&apos;&apos; </code></pre><p>(左右都是两个单引号，带进数据库里查询肯定报错)</p>
+<h3><span id="concat函数">concat函数</span></h3><p>为了使like函数能够执行，只能用${}的内联参数，那么就要考虑如何防止sql注入，这时候就需要用到sql原生的函数concat了</p>
+<p>concat函数的目的是将多个字符串合并，例：select concat（’A’,’B’）;    结果为AB</p>
+<p>那么防注入的demo如下</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">selectid="selectStudentByFuzzyQuery"resultMap="studentMap"</span>&gt;</span></span><br><span class="line">	SELECT *</span><br><span class="line">	FROM student</span><br><span class="line">	WHERE student.stu_name</span><br><span class="line">		LIKE CONCAT('%',#&#123;stuName&#125;,'%')</span><br><span class="line"><span class="tag">&lt;/<span class="name">select</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>当传入值为恶意的1’ or 1#时，经过#{}内联函数时会变成 ‘1’\ or 1 #’  ，最终的sql语句为</p>
+<pre><code>select * from student where student.stu_name like &apos;%1&apos;\ or 1 #%&apos;</code></pre><p>成功拦截了注入</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Java/" rel="tag"># Java</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/03/28/sangfor-oracle/" rel="prev" title="数据库相关">
+      <i class="fa fa-chevron-left"></i> 数据库相关
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#null"><span class="nav-number">1.</span> <span class="nav-text">Java安全–sql注入</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#null"><span class="nav-number">1.1.</span> <span class="nav-text">java.sql.Statement</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#null"><span class="nav-number">1.2.</span> <span class="nav-text">java.sql.PrepareStatement</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#null"><span class="nav-number">1.3.</span> <span class="nav-text">Mybatis</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#null"><span class="nav-number">1.3.1.</span> <span class="nav-text">concat函数</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">cty</p>
+  <div class="site-description" itemprop="description">whoami</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">5</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">cty</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">chenfan</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.2
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+  <script type="text/javascript" src="//cdn.bootcss.com/canvas-nest.js/1.0.0/canvas-nest.min.js"></script>
+  
+</body>
+</html>
