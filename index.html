@@ -172,7 +172,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2020-09-17 16:23:42 / 修改时间：02:40:22" itemprop="dateCreated datePublished" datetime="2020-09-17T16:23:42+08:00">2020-09-17</time>
+              <time title="创建时间：2020-09-17 16:23:42 / 修改时间：02:54:57" itemprop="dateCreated datePublished" datetime="2020-09-17T16:23:42+08:00">2020-09-17</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -200,9 +200,16 @@
 <ul>
 <li><a href="#java安全-sql注入">Java安全–sql注入</a><ul>
 <li><a href="#javasqlstatement">java.sql.Statement</a></li>
-<li><a href="#javasqlpreparestatement">java.sql.PrepareStatement</a></li>
+<li><a href="#javasqlpreparestatement">java.sql.PrepareStatement</a><ul>
+<li><a href="#order-by绕过">order by绕过</a></li>
+<li><a href="#解决-硬编码">解决-硬编码</a></li>
+</ul>
+</li>
 <li><a href="#mybatis">Mybatis</a><ul>
-<li><a href="#concat函数">concat函数</a></li>
+<li><a href="#mybatis执行流程">mybatis执行流程</a></li>
+<li><a href="#mybatis中的预编译手法-内联参数">mybatis中的预编译手法-内联参数#{}</a></li>
+<li><a href="#模糊查询like的兼容导致注入">模糊查询like的兼容导致注入</a></li>
+<li><a href="#concat函数防止存在like时可能产生的注入">concat函数防止存在like时可能产生的注入</a></li>
 </ul>
 </li>
 </ul>
@@ -219,8 +226,10 @@
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">String sql ="<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> <span class="keyword">user</span> <span class="keyword">WHERE</span> <span class="keyword">id</span> = ?<span class="string">";</span></span><br><span class="line"><span class="string">//预编译语句</span></span><br><span class="line"><span class="string">PreparedStatement preparedStatement = connection.prepareStatement(sql);</span></span><br><span class="line"><span class="string">//填入参数</span></span><br><span class="line"><span class="string">preparedStatement.setString(1,reqStuId);</span></span><br><span class="line"><span class="string">preparedStatement.executeQuery();</span></span><br></pre></td></tr></table></figure>
 
 <p>我理解的流程是首先设置需要传入sql语句中的内容为（preparedStatement.setString(1,reqStuId);）然后将要带入查询的占位符的内容进行编译，比如传入的参数是 ‘ or 1 # ，那么编译后的结果就是 ‘\ or 1 # ,’ 就无法起到闭合的作用，再加上占位符的内容需要自带带引号包裹，所以最后带入查询sql语句中的样子为</p>
-<pre><code>SELECT * FROM user WHERE id = &apos;&apos;\ or 1 #&apos;   </code></pre><p>就什么锤子都不能用了<br>但预编译会出现一种特殊情况导致绕过，即order by；比如</p>
-<pre><code>select * from user order by id </code></pre><p>   那这种情况下加入用预编译的手法就算是正常的传入参数也会变成  select * from user order by ‘id’  ；即把’id’放进数据库中查，这必然是查不出东西的;所以当传递的参数为字符串类型时会考虑使用硬编码的方式，即直接在代码中写死了order by后面的id值</p>
+<pre><code>SELECT * FROM user WHERE id = &apos;&apos;\ or 1 #&apos;   </code></pre><p>就什么锤子都不能用了</p>
+<h3><span id="order-by绕过">order by绕过</span></h3><p>但预编译会出现一种特殊情况导致绕过，即order by；比如</p>
+<pre><code>select * from user order by id </code></pre><p>   那这种情况下加入用预编译的手法就算是正常的传入参数也会变成  select * from user order by ‘id’  ；即把’id’放进数据库中查，这必然是查不出东西的;</p>
+<h3><span id="解决-硬编码">解决-硬编码</span></h3><p>   所以当传递的参数为字符串类型时会考虑使用硬编码的方式，即直接在代码中写死了order by后面的id值</p>
 <pre><code>    String column = &quot;id&quot;;
     switch(column){
         case &quot;id&quot;:
@@ -228,7 +237,7 @@
             break;
 }</code></pre><p>当id定义为int类型（整型，不能加’）时就不会产生sql注入，因为java时强类型语言，前后端类型不一致会报错</p>
 <p>以上问题类似的还有group by等</p>
-<h2><span id="mybatis">Mybatis</span></h2><p>mybatis本身是apache的开源项目ibatis改名，是一个底层框架，对jdbc操作数据库的过程进行封装，让开发者主要精力在sql语句那边而不是类似创建连接等其他代码上</p>
+<h2><span id="mybatis">Mybatis</span></h2><h3><span id="mybatis执行流程">mybatis执行流程</span></h3><p>mybatis本身是apache的开源项目ibatis改名，是一个底层框架，对jdbc操作数据库的过程进行封装，让开发者主要精力在sql语句那边而不是类似创建连接等其他代码上</p>
 <p>大概的框架主要是</p>
 <ol>
 <li><p>提前配置好操作的sql语句</p>
@@ -260,6 +269,9 @@
 <p>他的mapper.xml配置长大概这样</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version="1.0"encoding="UTF-8"?&gt;</span><br><span class="line">	//namespace：用来区别不同的类的名字</span><br><span class="line">&lt;mappernamespace="test"&gt;</span><br><span class="line">//通过id查询用户</span><br><span class="line">&lt;selectid="findUserById"parameterType="Integer"resultType="com.ben.domain.User"&gt;</span><br><span class="line">	<span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">user</span> <span class="keyword">where</span> <span class="keyword">id</span> = <span class="comment">#&#123;v&#125;</span></span><br><span class="line">&lt;/<span class="keyword">select</span>&gt;</span><br></pre></td></tr></table></figure>
 
+<h3><span id="mybatis中的预编译手法-内联参数">mybatis中的预编译手法-内联参数#{}</span></h3><p>在mybatis中有两种内联参数（就当参数看吧）<br> 其中第一个#{}:一个占位符。preparedStatement向占位符中设置值，自动进行java类型和jdbc类型转换。#{}可以有效防止sql注入。 </p>
+<p>第二个${}:表示拼接sql串，通过${}可以将parameterType 传入的内容拼接在sql中且不进行jdbc类型转换。</p>
+<p>简单对应着jdbc中有预编译跟没预编译的两种手法，自然${}跟java.sql.Statement一样会产生注入的风险，#{}的底层就是java.sql.PrepareStatement那一套，所以order by那套问题也存在（order by的问题用上面的硬编码方式解决）</p>
 <p>这里面#{V} 告诉mybatis创建一个预处理语句参数，在JDBC中，这个的一个参数在Sql中会由一个“ ？”表示，并被传递到新的预处理语句中</p>
 <p>所以上面test类用jdbc的写法长这样</p>
 <pre><code>String findUserById =&quot;select * from user where id = ?&quot;;
@@ -269,16 +281,13 @@ ps.setInt(1,id);</code></pre><p>也就是预编译的java.sql.PrepareStatement�
 <p>id:标识映射文件中的sql，称为statement的id将sql语句封装到mappedStatement对象中，所以将id称为statement的id </p>
 <p>parameterType:指定输入参数的类型. </p>
 <p>resultType:指定输出结果类型。mybatis将sql查询结果的一行记录数据映射为resultType指定类型的对象。如果有多条数据，则分别进行映射，并把对象放到容器List中</p>
-<p>在mybatis中有两种内联参数（就当参数看吧）<br> 其中第一个#{}:一个占位符。preparedStatement向占位符中设置值，自动进行java类型和jdbc类型转换。#{}可以有效防止sql注入。 </p>
-<p>第二个${}:表示拼接sql串，通过${}可以将parameterType 传入的内容拼接在sql中且不进行jdbc类型转换。</p>
-<p>简单对应着jdbc中有预编译跟没预编译的两种手法，自然${}跟java.sql.Statement一样会产生注入的风险，#{}的底层就是java.sql.PrepareStatement那一套，所以order by那套问题也存在</p>
-<p>另外还多了一个问题，即模糊查询LIKE<br>LIKE操作符用于在WHERE子句中搜索列中的指定模式<br>常见的几种搜索方式</p>
+<h3><span id="模糊查询like的兼容导致注入">模糊查询like的兼容导致注入</span></h3><p>另外还多了一个问题，即模糊查询LIKE<br>LIKE操作符用于在WHERE子句中搜索列中的指定模式<br>常见的几种搜索方式</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> persons <span class="keyword">where</span> city <span class="keyword">like</span> <span class="string">'H%'</span>          <span class="comment">##查找H开头city的persons</span></span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> persons <span class="keyword">where</span> city <span class="keyword">like</span> <span class="string">'%H'</span>          <span class="comment">##查找H结尾city的persons</span></span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> persons <span class="keyword">where</span> city <span class="keyword">like</span> <span class="string">'%H%'</span>       <span class="comment">##查找包含H的city的persons</span></span><br></pre></td></tr></table></figure>
 
 <p>一般用like语句的时候都是用${}的内联参数，因为如果用#{}的话，sql的xml中就是这样写的</p>
 <pre><code>select * from user where username like &apos;#${value}%&apos;</code></pre><p>转换成实际的操作语句就会变成</p>
 <pre><code>select * from user where username like &apos;&apos;value&apos;&apos; </code></pre><p>(左右都是两个单引号，带进数据库里查询肯定报错)</p>
-<h3><span id="concat函数">concat函数</span></h3><p>为了使like函数能够执行，只能用${}的内联参数，那么就要考虑如何防止sql注入，这时候就需要用到sql原生的函数concat了</p>
+<h3><span id="concat函数防止存在like时可能产生的注入">concat函数防止存在like时可能产生的注入</span></h3><p>为了使like函数能够执行，只能用${}的内联参数，那么就要考虑如何防止sql注入，这时候就需要用到sql原生的函数concat了</p>
 <p>concat函数的目的是将多个字符串合并，例：select concat（’A’,’B’）;    结果为AB</p>
 <p>那么防注入的demo如下</p>
 <figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">selectid="selectStudentByFuzzyQuery"resultMap="studentMap"</span>&gt;</span></span><br><span class="line">	SELECT *</span><br><span class="line">	FROM student</span><br><span class="line">	WHERE student.stu_name</span><br><span class="line">		LIKE CONCAT('%',#&#123;stuName&#125;,'%')</span><br><span class="line"><span class="tag">&lt;/<span class="name">select</span>&gt;</span></span><br></pre></td></tr></table></figure>
