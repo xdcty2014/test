@@ -172,7 +172,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2020-09-17 16:23:42 / 修改时间：02:54:57" itemprop="dateCreated datePublished" datetime="2020-09-17T16:23:42+08:00">2020-09-17</time>
+              <time title="创建时间：2020-09-17 16:23:42 / 修改时间：21:22:57" itemprop="dateCreated datePublished" datetime="2020-09-17T16:23:42+08:00">2020-09-17</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -217,83 +217,15 @@
 </ul>
 <!-- tocstop -->
 
-<h1><span id="java安全sql注入">Java安全–sql注入</span></h1><p>Java中操作sql语句的方法主要有几种<br>java.sql.Statement<br>java.sql.PrepareStatement<br>使用第三方 ORM 框架 —— MyBatis 或 Hibernate</p>
-<p>先说第一种</p>
-<h2><span id="javasqlstatement">java.sql.Statement</span></h2><p>java.sql.Statement跟php连接数据库的方式很像，就是实例化一个String类来作为sql查询语句带进后端数据库查<br>类似这种</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">String sql ="<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> <span class="keyword">user</span> <span class="keyword">WHERE</span> <span class="keyword">id</span> = <span class="string">'"+ id +"'</span><span class="string">";</span></span><br><span class="line"><span class="string">Statement statement = connection.createStatement();</span></span><br><span class="line"><span class="string">statement.execute(sql)；</span></span><br></pre></td></tr></table></figure>
-<p>这种没啥好说的，该注入注入吧，没救了</p>
-<h2><span id="javasqlpreparestatement">java.sql.PrepareStatement</span></h2><pre><code>第二种是java.sql.Statement的进阶版接口，他会对传参进行预编译，也就是java.sql.PrepareStatement</code></pre><p>它使用了sql语句中的占位符 ？ ，代替需要传入的参数，然后在传给数据库<br>大概是这样写的</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">String sql ="<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> <span class="keyword">user</span> <span class="keyword">WHERE</span> <span class="keyword">id</span> = ?<span class="string">";</span></span><br><span class="line"><span class="string">//预编译语句</span></span><br><span class="line"><span class="string">PreparedStatement preparedStatement = connection.prepareStatement(sql);</span></span><br><span class="line"><span class="string">//填入参数</span></span><br><span class="line"><span class="string">preparedStatement.setString(1,reqStuId);</span></span><br><span class="line"><span class="string">preparedStatement.executeQuery();</span></span><br></pre></td></tr></table></figure>
-
-<p>我理解的流程是首先设置需要传入sql语句中的内容为（preparedStatement.setString(1,reqStuId);）然后将要带入查询的占位符的内容进行编译，比如传入的参数是 ‘ or 1 # ，那么编译后的结果就是 ‘\ or 1 # ,’ 就无法起到闭合的作用，再加上占位符的内容需要自带带引号包裹，所以最后带入查询sql语句中的样子为</p>
-<pre><code>SELECT * FROM user WHERE id = &apos;&apos;\ or 1 #&apos;   </code></pre><p>就什么锤子都不能用了</p>
-<h3><span id="order-by绕过">order by绕过</span></h3><p>但预编译会出现一种特殊情况导致绕过，即order by；比如</p>
-<pre><code>select * from user order by id </code></pre><p>   那这种情况下加入用预编译的手法就算是正常的传入参数也会变成  select * from user order by ‘id’  ；即把’id’放进数据库中查，这必然是查不出东西的;</p>
-<h3><span id="解决-硬编码">解决-硬编码</span></h3><p>   所以当传递的参数为字符串类型时会考虑使用硬编码的方式，即直接在代码中写死了order by后面的id值</p>
-<pre><code>    String column = &quot;id&quot;;
-    switch(column){
-        case &quot;id&quot;:
-            sql=&quot;select * from user order by id&quot;;
-            break;
-}</code></pre><p>当id定义为int类型（整型，不能加’）时就不会产生sql注入，因为java时强类型语言，前后端类型不一致会报错</p>
-<p>以上问题类似的还有group by等</p>
-<h2><span id="mybatis">Mybatis</span></h2><h3><span id="mybatis执行流程">mybatis执行流程</span></h3><p>mybatis本身是apache的开源项目ibatis改名，是一个底层框架，对jdbc操作数据库的过程进行封装，让开发者主要精力在sql语句那边而不是类似创建连接等其他代码上</p>
-<p>大概的框架主要是</p>
-<ol>
-<li><p>提前配置好操作的sql语句</p>
-<p> <strong>SqlMapConfig.xml，此文件作为mybatis的全局配置文件，配置了mybatis的运行环境等信息。</strong></p>
-<p> <strong>mapper.xml文件即sql映射文件，文件中配置了操作数据库的sql语句。此文件需要在SqlMapConfig.xml中加载。</strong></p>
-</li>
-<li><p>建立会话</p>
-<p> 通过mybatis环境等配置信息构造SqlSessionFactory即会话工厂;<br> 由会话工厂创建sqlSession即会话，操作数据库需要通过sqlSession进行;<br> mybatis底层自定义了Executor执行器接口操作数据库，Executor接口有两个实现，一个是基本执行器、一个是缓存执行器;</p>
-</li>
-</ol>
-<p>**    Mapped Statement也是mybatis一个底层封装对象，它包装了mybatis配置信息及sql映射信息等。mapper.xml文件中一个sql对应一个Mapped Statement对象，sql的id即是Mapped statement的id。**</p>
-<ol start="3">
-<li><p>jdbs的解析处理</p>
-<p> Mapped Statement对sql执行输入参数进行定义，包括HashMap、基本类型、pojo，Executor通过Mapped Statement在执行sql前将输入的java对象映射至sql中，输入参数映射就是jdbc编程中对preparedStatement设置参数。</p>
-<p> Mapped Statement对sql执行输出结果进行定义，包括HashMap、基本类型、pojo，Executor通过Mapped Statement在执行sql后将输出结果映射至java对象中，输出结果映射过程相当于jdbc编程中对结果的解析处理过程。</p>
-</li>
-</ol>
-<p>总结起来mybatis就是七个步骤</p>
-<ol>
-<li>加载核心配置文件SqlMapConfig.xml </li>
-<li>创建SqlSessionFactoryBuilder对象 </li>
-<li>创建SqlSessionFactory对象（2,3可以写一起） </li>
-<li>创建SqlSession对象 </li>
-<li>执行SqlSession对象执行查询，获取结果User </li>
-<li>打印结果 </li>
-<li>释放资源</li>
-</ol>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">packagecom.ben.test;</span><br><span class="line">importcom.ben.domain.User;</span><br><span class="line">importorg.apache.ibatis.io.Resources;</span><br><span class="line">importorg.apache.ibatis.session.SqlSession;</span><br><span class="line">importorg.apache.ibatis.session.SqlSessionFactory;</span><br><span class="line">importorg.apache.ibatis.session.SqlSessionFactoryBuilder;</span><br><span class="line">importorg.junit.Test;</span><br><span class="line">importjava.io.IOException;</span><br><span class="line">importjava.io.InputStream;</span><br><span class="line">importjava.util.Date;</span><br><span class="line">importjava.util.List;</span><br><span class="line"></span><br><span class="line">publicclassMybatisTest&#123;</span><br><span class="line">    publicstaticvoidmain(String[] args)&#123;</span><br><span class="line"><span class="comment">//通过Id查询一个用户@Test</span></span><br><span class="line">    publicvoidtestSearchById()throwsIOException&#123;</span><br><span class="line">    <span class="comment">//1.读取配置文件</span></span><br><span class="line">        InputStream in = Resources.getResourceAsStream(<span class="string">"SqlMapConfig.xml"</span>);</span><br><span class="line">    <span class="comment">//2.创建SqlSessionFactory工厂</span></span><br><span class="line">        SqlSessionFactory sqlSessionFactory =newSqlSessionFactoryBuilder().build(in);</span><br><span class="line">    <span class="comment">//3.使用工厂生产SqlSession对象</span></span><br><span class="line">        SqlSession session = sqlSessionFactory.openSession();</span><br><span class="line">    <span class="comment">//4.执行Sql语句</span></span><br><span class="line">        User user = session.selectOne(<span class="string">"test.findUserById"</span>,<span class="number">10</span>);</span><br><span class="line">    <span class="comment">//5. 打印结果</span></span><br><span class="line">        System.out.println(user);</span><br><span class="line">    <span class="comment">//6.释放资源</span></span><br><span class="line">        session.close(); in.close();</span><br><span class="line">&#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-<p>他的mapper.xml配置长大概这样</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version="1.0"encoding="UTF-8"?&gt;</span><br><span class="line">	//namespace：用来区别不同的类的名字</span><br><span class="line">&lt;mappernamespace="test"&gt;</span><br><span class="line">//通过id查询用户</span><br><span class="line">&lt;selectid="findUserById"parameterType="Integer"resultType="com.ben.domain.User"&gt;</span><br><span class="line">	<span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">user</span> <span class="keyword">where</span> <span class="keyword">id</span> = <span class="comment">#&#123;v&#125;</span></span><br><span class="line">&lt;/<span class="keyword">select</span>&gt;</span><br></pre></td></tr></table></figure>
-
-<h3><span id="mybatis中的预编译手法-内联参数">mybatis中的预编译手法-内联参数#{}</span></h3><p>在mybatis中有两种内联参数（就当参数看吧）<br> 其中第一个#{}:一个占位符。preparedStatement向占位符中设置值，自动进行java类型和jdbc类型转换。#{}可以有效防止sql注入。 </p>
-<p>第二个${}:表示拼接sql串，通过${}可以将parameterType 传入的内容拼接在sql中且不进行jdbc类型转换。</p>
-<p>简单对应着jdbc中有预编译跟没预编译的两种手法，自然${}跟java.sql.Statement一样会产生注入的风险，#{}的底层就是java.sql.PrepareStatement那一套，所以order by那套问题也存在（order by的问题用上面的硬编码方式解决）</p>
-<p>这里面#{V} 告诉mybatis创建一个预处理语句参数，在JDBC中，这个的一个参数在Sql中会由一个“ ？”表示，并被传递到新的预处理语句中</p>
-<p>所以上面test类用jdbc的写法长这样</p>
-<pre><code>String findUserById =&quot;select * from user where id = ?&quot;;
-PreparedStatement ps = conn.prepareStatement(findUserById);
-ps.setInt(1,id);</code></pre><p>也就是预编译的java.sql.PrepareStatement写法</p>
-<p>namespace:用来区别不同的类的名字 </p>
-<p>id:标识映射文件中的sql，称为statement的id将sql语句封装到mappedStatement对象中，所以将id称为statement的id </p>
-<p>parameterType:指定输入参数的类型. </p>
-<p>resultType:指定输出结果类型。mybatis将sql查询结果的一行记录数据映射为resultType指定类型的对象。如果有多条数据，则分别进行映射，并把对象放到容器List中</p>
-<h3><span id="模糊查询like的兼容导致注入">模糊查询like的兼容导致注入</span></h3><p>另外还多了一个问题，即模糊查询LIKE<br>LIKE操作符用于在WHERE子句中搜索列中的指定模式<br>常见的几种搜索方式</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> persons <span class="keyword">where</span> city <span class="keyword">like</span> <span class="string">'H%'</span>          <span class="comment">##查找H开头city的persons</span></span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> persons <span class="keyword">where</span> city <span class="keyword">like</span> <span class="string">'%H'</span>          <span class="comment">##查找H结尾city的persons</span></span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> persons <span class="keyword">where</span> city <span class="keyword">like</span> <span class="string">'%H%'</span>       <span class="comment">##查找包含H的city的persons</span></span><br></pre></td></tr></table></figure>
-
-<p>一般用like语句的时候都是用${}的内联参数，因为如果用#{}的话，sql的xml中就是这样写的</p>
-<pre><code>select * from user where username like &apos;#${value}%&apos;</code></pre><p>转换成实际的操作语句就会变成</p>
-<pre><code>select * from user where username like &apos;&apos;value&apos;&apos; </code></pre><p>(左右都是两个单引号，带进数据库里查询肯定报错)</p>
-<h3><span id="concat函数防止存在like时可能产生的注入">concat函数防止存在like时可能产生的注入</span></h3><p>为了使like函数能够执行，只能用${}的内联参数，那么就要考虑如何防止sql注入，这时候就需要用到sql原生的函数concat了</p>
-<p>concat函数的目的是将多个字符串合并，例：select concat（’A’,’B’）;    结果为AB</p>
-<p>那么防注入的demo如下</p>
-<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">selectid="selectStudentByFuzzyQuery"resultMap="studentMap"</span>&gt;</span></span><br><span class="line">	SELECT *</span><br><span class="line">	FROM student</span><br><span class="line">	WHERE student.stu_name</span><br><span class="line">		LIKE CONCAT('%',#&#123;stuName&#125;,'%')</span><br><span class="line"><span class="tag">&lt;/<span class="name">select</span>&gt;</span></span><br></pre></td></tr></table></figure>
-<p>当传入值为恶意的1’ or 1#时，经过#{}内联函数时会变成 ‘1’\ or 1 #’  ，最终的sql语句为</p>
-<pre><code>select * from student where student.stu_name like &apos;%1&apos;\ or 1 #%&apos;</code></pre><p>成功拦截了注入</p>
-
+<h1 id="Java安全–sql注入"><a href="#Java安全–sql注入" class="headerlink" title="Java安全–sql注入"></a>Java安全–sql注入</h1><p>Java中操作sql语句的方法主要有几种<br>java.sql.Statement<br>java.sql.PrepareStatement<br>使用第三方 ORM 框架 —— MyBatis 或 Hibernate</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2020/09/17/Java%E5%AE%89%E5%85%A8-sql%E6%B3%A8%E5%85%A5/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -418,7 +350,7 @@ ps.setInt(1,id);</code></pre><p>也就是预编译的java.sql.PrepareStatement�
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-03-29 03:31:36" itemprop="dateModified" datetime="2020-03-29T03:31:36+08:00">2020-03-29</time>
+                <time title="修改时间：2020-09-17 21:22:42" itemprop="dateModified" datetime="2020-09-17T21:22:42+08:00">2020-09-17</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -452,9 +384,15 @@ ps.setInt(1,id);</code></pre><p>也就是预编译的java.sql.PrepareStatement�
 </ul>
 <!-- tocstop -->
 
-<h1><span id="dll劫持实例">DLL劫持实例</span></h1><p><strong>主要是对近期的两个例子进行分享</strong></p>
-<h2><span id="kmlis信息管理系统-dll劫持">KMLIS信息管理系统 dll劫持</span></h2><p>KMLIS是我同事在医院做渗透时遇到的一个c/s结构的系统，在进行wireshark抓包之后发现了一些HTTP层面的问题后开始对该应用程序的行为进行了分析<br><img src="https://ftp.bmp.ovh/imgs/2020/03/51b09ead7f00814f.png" alt><br>发现主程序会尝试去打开一个winhafnt.dll的文件，如果找不到的话就在工作目录下创建这么一个文件<br>那么本身该文件夹下是没有这个文件的，如果我们能够在这个目录下创建这个dll文件，这个程序可能就会以他自己的权限去执行这个dll，已达到我们获取shell的目的<br><img src="https://ftp.bmp.ovh/imgs/2020/03/4bd905f85270c0f0.png" alt><br>在生成dll文件之前我先翻了下他工作目录的子目录里面的dll文件，想确认下这家公司有没有对自己解压出来的dll文件颁发签名<br>（ps:个人理解到的进程对加载dll文件的监测不仅与hash校验、dll文件签名校验、dll文件特征值；这几种来看其实都会影响到程序的执行速度，所以很有可能不会对dll进行校验，毕竟就算是微软也没有对自己的服务加载的dll一个个检查过去）<br><img src="https://ftp.bmp.ovh/imgs/2020/03/e163c2af8d5325ec.png" alt><br>就比如上图Windows系统目录下的dll都是微软的认证<br><img src="https://ftp.bmp.ovh/imgs/2020/03/526d888df19959ab.png" alt><br>可以发现该程序自己解压出来的dll文件都没有带签名的，那么存在劫持的可能性就很大了<br><img src="https://ftp.bmp.ovh/imgs/2020/03/1dc433ad173c929a.png" alt><br>用msf生成一个能弹计算器的dll文件<br><img src="https://ftp.bmp.ovh/imgs/2020/03/3e842740d7b9747d.png" alt><br>最后在该进程启动时直接调用了该dll文件，导致了弹计算器，但其实我们也完全可以把这个做成一个高权限的后门来用<br>（ps：由于这个程序是安装没有默认在Windows目录下，所以生成的工作目录是很有可能允许低权限user写入文件的）</p>
-<h2><span id="cdpsvc服务提权好像没有cve编号">CDPSvc服务提权（好像没有cve编号）</span></h2>
+<h1 id="DLL劫持实例"><a href="#DLL劫持实例" class="headerlink" title="DLL劫持实例"></a>DLL劫持实例</h1><p><strong>主要是对近期的两个例子进行分享</strong></p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2020/03/26/DLL%E5%8A%AB%E6%8C%81%E5%AE%9E%E4%BE%8B/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -504,7 +442,7 @@ ps.setInt(1,id);</code></pre><p>也就是预编译的java.sql.PrepareStatement�
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-03-22 17:01:12" itemprop="dateModified" datetime="2020-03-22T17:01:12+08:00">2020-03-22</time>
+                <time title="修改时间：2020-09-17 21:23:40" itemprop="dateModified" datetime="2020-09-17T21:23:40+08:00">2020-09-17</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -550,32 +488,15 @@ ps.setInt(1,id);</code></pre><p>也就是预编译的java.sql.PrepareStatement�
 </ul>
 <!-- tocstop -->
 
-<h1><span id="有关提权的总结">有关提权的总结</span></h1><p><strong>主要是想对看到的一些文章做点总结</strong><br>提权广义上来讲其实就是尝试从低权限到高权限的一个过程，或者说通过非正常手法获取到不属于自己权限的行为。我个人更倾向与web漏洞中的越权漏洞来对标系统提权背后的逻辑，一种是直接获取到系统权限（比如ms17-010），一种是未授权使用管理员的某些权限（比如<a href="https://thehackernews.com/2018/12/windows-zero-day-exploit.html" target="_blank" rel="noopener">Windows低权限用户任意文件读取</a>），有点类似与水平跟垂直的区别吧，当然Windows跟Linux之间也会是有点区别</p>
-<h2><span id="windows">Windows</span></h2><p>Windows的提权主要的就是利用漏洞EXP、获取高权限用户信息、获取弱文件夹信息</p>
-<p>但是在做之前也还是要收集下这台主机的一些信息，比如说端口、进程、网络、本地缓存文件（如浏览器、WiFi保存的密码）、跟其他主机的路由、arp表等等</p>
-<h3><span id="漏洞提权">漏洞提权</span></h3><p>在Windows的漏洞中总会出现一些能够直接获取权限的漏洞，客户没打对应的补丁然后网上又有公开的EXP的情况下，能够直接拿来利用，前提是需要先确认用户的系统版本信息以及打的补丁编号，这个我们能通过systeminfo来看到<br><img src="https://ftp.bmp.ovh/imgs/2020/03/f44376a481f84f90.png" alt><br>Windows10 10.0.18362 并且补丁打的情况就很清楚了<br>当然也可以直接使用wmic qfe get Caption,Description,HotFixID,InstalledOn来直接获取打补丁的情况<br><img src="https://ftp.bmp.ovh/imgs/2020/03/099cb95e86fbdb8c.png" alt><br>这种还能够知道大致的一个补丁情况，什么时候安装的等等<br>网上也有那种已经做好的拿来对比补丁号跟版本的脚本</p>
-<h3><span id="获取高权限用户信息提权">获取高权限用户信息提权</span></h3><p>这种我也不知道有没有种专门的词汇去描述，但是大家在做渗透的时候都会做过这么一个场景的吧，一个满目疮痍的网站（asp+mssql类似），你通过fckeditor之类的模板直接绕过了黑名单，上传了shell并且拿到权限，发现是个普通用户，这时候大家肯定会想着，去尝试找一下数据库的账户密码来测试下数据库的权限，因为可能web容器我们赋予的只是一个普通用户的权限，但是数据库可能会有更高的权限（说白了就是权限管控并没有做完全），我们这时候就会去找web目录下的.config文件，那里面会有mssql的数据库账号密码，在确认站库不分离的情况下，我们可能能够利用这个方法，获取到更高的权限<br><img src="https://ftp.bmp.ovh/imgs/2020/03/dea9a7748b3aacf0.png" alt></p>
-<h3><span id="服务配置有误">服务配置有误</span></h3><p>我们能够通过sc query来查看当前所有的服务<br><img src="https://ftp.bmp.ovh/imgs/2020/03/96ee08646abe564f.png" alt><br>然后进一步根据Windows工具集里的accesschk.exe来做qu权限判断<br>accesschk.exe -ucqv 服务名<br><img src="https://ftp.bmp.ovh/imgs/2020/03/ab58314ff6f0dc12.png" alt><br>像这种只允许system跟administrators来调用的就没办法了<br>这里用一个网上比较老的例子来看，大概是xp sp0的下的问题<br><img src="https://ftp.bmp.ovh/imgs/2020/03/6f6baf08bd51fb29.png" alt><br>这里就可以看到这个服务低权限用户也是也是调用的（那个power user就是低权限用户）<br>然后我们大概了解了下这个服务本身是由system调用的（在system目录下）<br>那么我们利用这个服务把shell反弹出去的权限就是system权限了</p>
-<h3><span id="dll文件劫持">dll文件劫持</span></h3><p>这是对dll文件劫持的官方解释<br>“当应用程序动态加载动态链接库而不指定完全限定的路径名时，Windows会尝试通过以特定顺序搜索定义明确的目录集来查找DLL。如果攻击者获得了DLL搜索路径上目录之一的控制权，则可以将DLL的恶意副本放置在该目录中。有时称为DLL预加载攻击或二进制植入攻击。如果系统在搜索受感染的目录之前未找到DLL的合法副本，则它将加载恶意DLL。如果应用程序以管理员权限运行，则攻击者可能会成功进行本地特权提升。”<br>当然dll劫持也是比较常用在权限维持这部分的<br>因此，如果应用程序仅按其名称加载DLL，它将按照下面的搜索顺序（32位操作系统）查找该库<br>从中加载应用程序的目录<br>32位系统目录（C：\ Windows \ System32）<br>16位系统目录（C：\ Windows \ System）<br>Windows目录（C：\ Windows）<br>当前工作目录（CWD）<br>PATH环境变量中的目录（系统然后是用户）</p>
-<p>所以在尝试dll劫持的时候我们可以关注三个方面<br>Windows下dll的查找顺序<br>dll本身存在问题<br>弱文件夹类型</p>
-<h4><span id="windows下dll的查找顺序">Windows下dll的查找顺序</span></h4><p>在Windows DLL搜索顺序中，路径环境变量的目录是它最后执行的搜索，首先从系统变量path开始，然后是用户变量path。除非应用程序没有为其DLL使用完全限定的路径名，否则即使存在某些缓解措施，它也将尝试通过搜索顺序查找DLL。<br>这是本人win10 系统变量path<br><img src="https://ftp.bmp.ovh/imgs/2020/03/3afffb7b142a57cc.png" alt><br>用户变量path<br><img src="https://ftp.bmp.ovh/imgs/2020/03/92f77216aa5ffbf8.png" alt></p>
-<h4><span id="dll本身可能存在问题">dll本身可能存在问题</span></h4><p>这里因为涉及对dll文件的静态分析不大会我只是大概讲一下<br>大部分的服务（services.msc）都是用system权限配置的，那么如果我们能定位到某些服务他所加载的dll文件的话，不管他是限制了加载该dll文件的目录，还是像上面说的通过顺序查找，我们都有可能去对应的目录下伪造一个该dll文件，让服务已system权限加载（不过如果服务都会去指定dll文件的加载目录的话，那我们低权限下也应该没办法去写入文件了）</p>
-<h4><span id="弱文件夹类型">弱文件夹类型</span></h4><p>那么当我们通过以上的收集知道了，”windows的部分服务”存在问题，不指定目录来加载dll文件，然后又知道了该计算机他搜索dll文件的顺序（系统变量path–&gt;用户变量path）那么我们就能构建一个Windows服务需要加载的恶意dll文件，如果存在该文件，看他放哪了，不存在就放path中</p>
-<p>“当应用程序安装在根目录中并将其路径添加到系统路径环境时，这为可能具有DLL劫持漏洞的大量应用程序打开了攻击面。一种情况是软件被推到机器上，例如Marimba，Landesk等，它们使用以系统特权运行的Windows服务来安装软件。由于它运行时带有系统特权软件，该软件已推送到Perl，Python或Ruby等机器上，因此，如果已在软件包中设置了添加路径，并且默认情况下将其安装在根目录上，则它将添加到系统路径环境中。也可以是IT支持人员以用户的管理员权限安装软件。”</p>
-<p>其实所谓的弱文件夹的类型，可以理解为一个程序、服务他是由系统权限执行的，但是他执行文件的目录没有配置好，导致了低权限用户能够在那个执行目录下放置恶意的exe、dll等pe文件；那么配合上面加载dll的顺序我们大概就知道了，如果该程序、服务的工作目录、或者用户、环境变量中权限没做好，导致普通用户能够写入文件，并诱导该服务、程序重启（一般就是想办法诱导服务器重启），那么系统就能以system权限加载我们的dll文件了</p>
-<p>但是一般来说系统、用户变量都是c:\windows这种目录，低权限用户是无法写入的，这时候我们就需要通过以上路径的写入权限来判断哪些目录是允许低权限用户写入文件的，就比如上图中系统变量路劲，system根目录这些不可能会让低权限用户写入，但是用户变量中C:/python27这种的可能会允许普通用户去写入权限<br><img src="https://ftp.bmp.ovh/imgs/2020/03/b99057fb71432bb1.png" alt><br><img src="https://ftp.bmp.ovh/imgs/2020/03/f0445ab525916b25.png" alt><br>这边来看权限都设置的很死啊，不过你的目标大可能是Windows server2008这类的服务器，并且里面还会带些方便运维的程序，如果部署的时候图方便，不放在Windows系统目录下的话还是有利用的可能性的</p>
-<h4><span id="dll文件tips以及修复建议">dll文件tips以及修复建议</span></h4><p>这里先提到一些困难会存在问题的dll<br>可以在Windows 7（32/64）上加以利用<br>IKE和AuthIP IPsec密钥模块（IKEEXT）– wlbsctrl.dll </p>
-<p>Windows Media Center接收器服务（ehRecvr）– ehETW.dll<br>Windows Media Center调度程序服务（ehSched）– ehETW.dll<br>Windows Media Center Services启动类型设置为手动，并且状态未启动，只会给我们提供网络服务特权，因此我看不到它有太多用处，尤其是有限的特权。但是，可以通过某些计划任务临时启动它。<br>schtasks.exe / run / I / TN“ \ Microsoft \ Windows \ Media Center \ mcupdate”<br>schtasks.exe / run / I / TN“ \ Microsoft \ Windows \ Media Center \ MediaCenterRecoveryTask”<br>schtasks.exe / run / I / TN“ \ Microsoft \ Windows \ Media Center \ ActivateWindowsSearch”</p>
-<p>Windows XP的这些服务容易受到攻击</p>
-<p>自动更新（wuauserv）– ifsproxy.dll<br>远程桌面帮助会话管理器（RDSessMgr）– SalemHook.dll<br>远程访问连接管理器（RasMan）– ipbootp.dll<br>Windows管理规范（winmgmt）– wbemcore.dll</p>
-<p>可能安装的其他服务也容易受到攻击</p>
-<p>音频服务（STacSV）– SFFXComm.dll SFCOM.DLL<br>英特尔（R）快速存储技术（IAStorDataMgrSvc）– DriverSim.dll<br>瞻博网络统一网络服务（JuniperAccessService）– dsLogService.dll<br>封装企业代理– SDDisk.dll </p>
-<p>windows7之后的8之类的就没有类似不安全的服务了</p>
-<p>修复建议<br>SafeDllSearchMode<br>默认情况下启用安全DLL搜索模式[4]。要禁用此功能，我们可以创建一个DWORD名称SafeDllSearchMode，其值为0<br>[HKEY_LOCAL_MACHINE \ SYSTEM \ CurrentControlSet \ Control \ Session Manager]<br>如果启用了SafeDllSearchMode，则搜索顺序如下：<br>从中加载应用程序的目录<br>32位系统目录（C：\ Windows \ System32）<br>16位系统目录（C：\ Windows \ System）<br>Windows目录（C：\ Windows）<br>当前工作目录（CWD）<br>PATH环境变量中的目录（系统然后是用户）</p>
-<p>如果SafeDllSearchMode被禁用，则搜索顺序如下：<br>从中加载应用程序的目录<br>当前工作目录（CWD）[在列表中上移]<br>32位系统目录（C：\ Windows \ System32）<br>16位系统目录（C：\ Windows \ System）<br>Windows目录（C：\ Windows）<br>PATH环境变量中的目录（系统然后是用户）<br>调用SetDllDirectory（“”）或SetDllDirectory（“ C：\ program files \ MyApp \”）将禁用SafeDllSearchMode，并使用针对SetDllDirectory描述的搜索顺序。</p>
-<h3><span id="其他应用劫持">其他应用劫持</span></h3><p>这个就是相当于在dll文件劫持上的拓展，比如当我们在信息收集的时候发现某些进程在计划任务或者在哪里一直在运行着，很可能是通过管理员权限运行的，那这时候我们到他的执行目录下，看是否存在写文件的权限，如果有的话，直接生成一个恶意的执行程序替换掉原先的程序，也能达到一个提权的作用<br>主要的目录在Windows服务，计划任务和启动任务的path</p>
-<p>tips：accesschk查找c盘下弱文件夹<br>accesschk.exe -uwdqs Users c:<br>accesschk.exe -uwdqs “Authenticated Users” c:<br>查找c盘目录里的弱文件<br>accesschk.exe -uwqs Users c:*.*<br>accesschk.exe -uwqs “Authenticated Users” c:*.*<br>Authenticated Users代表的是一个安全组，而非用户。这个组并不具体指代某一具体的用户，而是直接代表所有已经顺利通过了身份验证的用户。系统的某些权限机制需要针对已经通过身份验证的用户来应用，因此使用这一用户组加以代表。里面是有administrators等用户的</p>
-
+<h1 id="有关提权的总结"><a href="#有关提权的总结" class="headerlink" title="有关提权的总结"></a>有关提权的总结</h1><p><strong>主要是想对看到的一些文章做点总结</strong><br>提权广义上来讲其实就是尝试从低权限到高权限的一个过程，或者说通过非正常手法获取到不属于自己权限的行为。我个人更倾向与web漏洞中的越权漏洞来对标系统提权背后的逻辑，一种是直接获取到系统权限（比如ms17-010），一种是未授权使用管理员的某些权限（比如<a href="https://thehackernews.com/2018/12/windows-zero-day-exploit.html" target="_blank" rel="noopener">Windows低权限用户任意文件读取</a>），有点类似与水平跟垂直的区别吧，当然Windows跟Linux之间也会是有点区别</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2020/03/08/%E6%9C%89%E5%85%B3%E6%8F%90%E6%9D%83/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -625,7 +546,7 @@ ps.setInt(1,id);</code></pre><p>也就是预编译的java.sql.PrepareStatement�
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-03-29 20:45:45" itemprop="dateModified" datetime="2020-03-29T20:45:45+08:00">2020-03-29</time>
+                <time title="修改时间：2020-09-17 21:23:27" itemprop="dateModified" datetime="2020-09-17T21:23:27+08:00">2020-09-17</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -657,17 +578,14 @@ ps.setInt(1,id);</code></pre><p>也就是预编译的java.sql.PrepareStatement�
 </li>
 </ul>
 <!-- tocstop -->
-
-<h1><span id="命令执行bypass">命令执行bypass</span></h1><h2><span id="linux变量替换配合双引号-base64">Linux变量替换${}配合双引号  || base64</span></h2><p>Linux下能够用${}做变量替换，他又两个特点能够在我们的bypass当中采用</p>
-<blockquote>
-</blockquote>
-<p>1.在shell中能够直接插入而不报错<br>2.若替换的变量为空，那么他自身也为空<br><img src="https://ftp.bmp.ovh/imgs/2020/03/3ea8c06fa43a84db.png" alt></p>
-<p>那么Linux的payloads可以构建为<br>/etc/pas${gsh[$sss]}swd<br>注:[]里的变量可以无限套娃</p>
-<p>回到命令本身正常读密码可以用的命令一般有cat、tail、nl、head、less<br><img src="https://ftp.bmp.ovh/imgs/2020/03/3221ba2b4f45c1ec.png" alt></p>
-<p>而命令中插入单双引号本身不会影响Linux执行命令<br><img src="https://ftp.bmp.ovh/imgs/2020/03/c41bcb96ed52b4ec.png" alt></p>
-<p>所以这三者做一个结合可以有效的作为waf bypass的字典<br><img src="https://ftp.bmp.ovh/imgs/2020/03/7b57ccfccb9fa4be.png" alt></p>
-<p>base64解码其实也是一种绕waf的思路，但是如果base64解码后特殊字符会url转码，所以可能不好添加进千层饼里<br><img src="https://ftp.bmp.ovh/imgs/2020/03/9b10090c50bc667a.png" alt><br><img src="https://ftp.bmp.ovh/imgs/2020/03/ec18bf98c1f99ede.png" alt></p>
-
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2020/02/26/waf%20bypass/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
