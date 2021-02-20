@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"yoursite.com","root":"/","scheme":"Gemini","version":"7.7.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="rmi安全rmi概述rmi全称为远程方法调用(Remote Method Invocation)，是一种跨JVM实现方法调用的技术。rmi传输的过程中必然会用到序列化以及反序列化 rmi通信过程主要分为三个部分  rmi client：从registry获取stub，从stub中获取JNDI server addr，再请求server rmi server：存储对象数据。不一定和Registry在">
+<meta property="og:type" content="article">
+<meta property="og:title" content="java安全&#x2F;Java安全">
+<meta property="og:url" content="http://yoursite.com/2021/02/21/java%E5%AE%89%E5%85%A8/Java%E5%AE%89%E5%85%A8/index.html">
+<meta property="og:site_name" content="xdcty">
+<meta property="og:description" content="rmi安全rmi概述rmi全称为远程方法调用(Remote Method Invocation)，是一种跨JVM实现方法调用的技术。rmi传输的过程中必然会用到序列化以及反序列化 rmi通信过程主要分为三个部分  rmi client：从registry获取stub，从stub中获取JNDI server addr，再请求server rmi server：存储对象数据。不一定和Registry在">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://yoursite.com/2021/02/21/java%E5%AE%89%E5%85%A8/Java%E5%AE%89%E5%85%A8/assets/jndi.png">
+<meta property="og:image" content="http://yoursite.com/2021/02/21/java%E5%AE%89%E5%85%A8/Java%E5%AE%89%E5%85%A8/assets/jndi.jpg">
+<meta property="og:image" content="http://yoursite.com/2021/02/21/java%E5%AE%89%E5%85%A8/Java%E5%AE%89%E5%85%A8/assets/image-20210128123519295.png">
+<meta property="og:image" content="http://yoursite.com/2021/02/21/java%E5%AE%89%E5%85%A8/Java%E5%AE%89%E5%85%A8/assets/image-20210128123609669.png">
+<meta property="og:image" content="http://yoursite.com/2021/02/21/java%E5%AE%89%E5%85%A8/Java%E5%AE%89%E5%85%A8/assets/image-20210128123743904.png">
+<meta property="og:image" content="http://yoursite.com/2021/02/21/java%E5%AE%89%E5%85%A8/Java%E5%AE%89%E5%85%A8/assets/image-20210128130143784.png">
+<meta property="og:image" content="http://yoursite.com/2021/02/21/java%E5%AE%89%E5%85%A8/Java%E5%AE%89%E5%85%A8/assets/image-20210128132717871.png">
+<meta property="article:published_time" content="2021-02-20T16:59:52.830Z">
+<meta property="article:modified_time" content="2021-02-20T16:54:33.922Z">
+<meta property="article:author" content="cty">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2021/02/21/java%E5%AE%89%E5%85%A8/Java%E5%AE%89%E5%85%A8/assets/jndi.png">
+
+<link rel="canonical" href="http://yoursite.com/2021/02/21/java%E5%AE%89%E5%85%A8/Java%E5%AE%89%E5%85%A8/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true
+  };
+</script>
+
+  <title>java安全/Java安全 | xdcty</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">xdcty</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">whoami</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2021/02/21/java%E5%AE%89%E5%85%A8/Java%E5%AE%89%E5%85%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="cty">
+      <meta itemprop="description" content="whoami">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="xdcty">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          java安全/Java安全
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2021-02-21 00:59:52 / 修改时间：00:54:33" itemprop="dateCreated datePublished" datetime="2021-02-21T00:59:52+08:00">2021-02-21</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1><span id="rmi安全">rmi安全</span></h1><h2><span id="rmi概述">rmi概述</span></h2><p>rmi全称为远程方法调用(Remote Method Invocation)，是一种跨JVM实现方法调用的技术。rmi传输的过程中必然会用到序列化以及反序列化</p>
+<p>rmi通信过程主要分为三个部分</p>
+<ul>
+<li>rmi client：从registry获取stub，从stub中获取JNDI server addr，再请求server</li>
+<li>rmi server：存储对象数据。不一定和Registry在同一个JVM。方法执行的地方，仅把方法返回值返回给Client</li>
+<li>rmi registry：存储注册对象的stub（stub用于远程方法调用时，用于接收接口信息并作用与服务端）。</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">LocateRegistry.creatRegistry(<span class="number">1099</span>);</span><br><span class="line">Naming.bind(<span class="string">"rmi://127.0.0.1:1099/Hello"</span>, <span class="keyword">new</span> RemoteHelloWorld());</span><br></pre></td></tr></table></figure>
+
+<p>第一句是在本地1099端口创建并运行rmi registry，第二句把RemoteHelloWorld对象绑定到hello这个名字上，其中127.0.0.1：1099就是rmi registry的地址跟端口</p>
+<p>如果rmi registry地址可控，就能使服务器调用远端恶意的类</p>
+<p><strong>但是Java对rmi做了限制，在注册地址是本地地址时才能使用bind、rebind、unbind方法，但是不限制list跟lookup方法进行远程调用，list的作用是列出目标地址所有绑定的对象，而lookup方法是获得该远程对象</strong></p>
+<h2><span id="rmi通信过程">rmi通信过程</span></h2><p>rmi通信过程当中进行了两次tcp连接，第一次是客户端连接建立的registry地址（比如上述的本地1099端口），寻找name是Hello的对象，找到后Registry返回给客户端一个序列化的数据，里面含有一个通信的地址:端口（这里应该会提供一个随机的端口让客户端连接），然后双方重新建立连接，在新的端口上开始远程方法调用</p>
+<h2><span id="rmi攻击相关防御">rmi攻击相关防御</span></h2><p>rmi通信过程传输的都是序列化后的对象，客户端在反序列化时发现一个对象会先在自己本地的CLASSPATH当中查找（有点类似环境变量），如果没有的话，再远程加载codebase中的类，而codebase又能随着序列化数据一起传输，所以服务端在接收数据后会去我们恶意构造的codebase当中去查找恶意类，已达到攻击的效果</p>
+<p><strong>但是在Java版本7u21、6u45当中就默认设置了java.rmi.server.useCodebaseOnly=true，这时候Java只信任预先配置的codebase，不支持从rmi请求中获取</strong></p>
+<h1><span id="jndi安全">JNDI安全</span></h1><h2><span id="什么是jndi">什么是JNDI</span></h2><p>jndi的全称为Java Naming and Directory Interface（java命名和目录接口）SUN公司提供的一种标准的Java命名系统接口，JNDI提供统一的客户端API，通过不同的服务供应接口(SPI)的实现</p>
+<p>简单说就是原本应用要进行rmi、ldap等访问时各有一套自己的写法，jndi做了一个接口整合，用一个通用的模板来实现多种服务的访问模板，<strong>jndi是对各种访问目录服务的逻辑进行了再封装</strong></p>
+<p><img src="assets/jndi.png" alt="jndi"></p>
+<p>命名服务是一组简单的键值对绑定，可通过键名检索值（rmi就是典型命名服务）。一组这样的绑定被称为上下文</p>
+<h3><span id="javaxnaming">javax.naming</span></h3><p>Naming类提供存储和获得“远程对象注册表”上远程对象的引用的方法</p>
+<p>jndi上下文可以用来查找，捆绑/解除捆绑，创建或者破坏绑定名称操作在JNDI中是使用javax.naming.Context 接口来表示的，而这个接口也正是与命名服务进行交互的主要接口。<br>Context 接口中的每个命名方法都有两种重载的形式：<br>lookup(String name): 接受一个字符串名称参数，查找绑定远程对象。<br>lookup(javax.naming.Name): 接受一个结构化的名称，查找绑定远程对象。<br>初始化上下文<br>InitialContext 是一个实现了 Context接口的类。使用这个类作为您到命名服务的入口点 。创建一个InitialContext 对象构造器需要采用一组属性，形式为java.util.Hashtable 或其子类之一</p>
+<h3><span id="javarmiregistry">java.rmi.registry</span></h3><p>java.rmi.registry：提供注册表的创建以及查找和命名远程对象的类、接口和异常</p>
+<p>java.rmi.registry.LocateRegistry<br>LocateRegistry 用于获取特定主机（包括本地主机）上的远程对象注册表的引用，或用于创建一个接受对特定端口调用的远程对象注册表。</p>
+<p>java.rmi.registry.Registry是简单远程对象注册表的一个远程接口，它提供存储和获取绑定了任意字符串名称的远程对象引用的方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> javax.naming.Context;</span><br><span class="line"><span class="keyword">import</span> javax.naming.InitialContext;</span><br><span class="line"><span class="keyword">import</span> java.rmi.registry.LocateRegistry;</span><br><span class="line"><span class="keyword">import</span> java.rmi.registry.Registry;</span><br><span class="line"><span class="keyword">import</span> java.util.Properties;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">RMIRegistryContextFactoryTest</span> </span>&#123;</span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">		String providerURL = <span class="string">"rmi://"</span> + RMI_HOST + <span class="string">":"</span> + RMI_PORT;</span><br><span class="line">		<span class="comment">// 创建环境变量对象</span></span><br><span class="line">		Hashtable env = <span class="keyword">new</span> Hashtable();</span><br><span class="line">		<span class="comment">// 设置JNDI初始化工厂类名</span></span><br><span class="line">		env.put(Context.INITIAL_CONTEXT_FACTORY, <span class="string">"com.sun.jndi.rmi.registry.RegistryContextFactory"</span>);</span><br><span class="line">		<span class="comment">// 设置JNDI提供服务的URL地址</span></span><br><span class="line">		env.put(Context.PROVIDER_URL, providerURL);</span><br><span class="line">		<span class="comment">// 通过JNDI调用远程RMI方法测试</span></span><br><span class="line">		<span class="keyword">try</span> &#123;</span><br><span class="line">			<span class="comment">// 创建JNDI目录服务对象</span></span><br><span class="line">			DirContext context = <span class="keyword">new</span> InitialDirContext(env);</span><br><span class="line">			<span class="comment">// 通过命名服务查找远程RMI绑定的RMITestInterface对象</span></span><br><span class="line">			RMITestInterface testInterface = (RMITestInterface) context.lookup(RMI_NAME);</span><br><span class="line">			<span class="comment">// 调用远程的RMITestInterface接口的test方法</span></span><br><span class="line">			String result = testInterface.test();</span><br><span class="line">			System.out.println(result);</span><br><span class="line">		&#125; <span class="keyword">catch</span> (NamingException e) &#123;</span><br><span class="line">			e.printStackTrace();</span><br><span class="line">		&#125; <span class="keyword">catch</span> (RemoteException e) &#123;</span><br><span class="line">			e.printStackTrace();</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2><span id="jndi配合rmi进行利用">JNDI配合rmi进行利用</span></h2><p>在java的6u45、7u21之后，java.rmi.server.useCodebaseOnly的默认值被设置为true。禁用了自动加载远程类文件，基本上直接利用rmi服务进行攻击的路被封了，<strong>但是jndi作为服务的接口封装有个好处在于jndi里面对rmi的访问不需要走java.rmi.server.useCodebaseonly=true的限制</strong>（这也是jndi注入利用的原因），不过后来也对jndi做了安全性规范</p>
+<h2><span id="jdni注入补丁">jdni注入补丁</span></h2><ul>
+<li>JDK 6u45、7u21之后：java.rmi.server.useCodebaseOnly的默认值被设置为true。当该值为true时，将禁用自动加载远程类文件，仅从CLASSPATH和当前JVM的java.rmi.server.codebase指定路径加载类文件。使用这个属性来防止客户端VM从其他Codebase地址上动态加载类，增加了RMI ClassLoader的安全性。</li>
+<li>JDK 6u141、7u131、8u121之后：增加了com.sun.jndi.rmi.object.trustURLCodebase选项，默认为false，禁止RMI和CORBA协议使用远程codebase的选项，因此RMI和CORBA在以上的JDK版本上已经无法触发该漏洞，但依然可以通过指定URI为LDAP协议来进行JNDI注入攻击。</li>
+<li>JDK 6u211、7u201、8u191之后：增加了com.sun.jndi.ldap.object.trustURLCodebase选项，默认为false，禁止LDAP协议使用远程codebase的选项，把LDAP协议的攻击途径也给禁了。<img src="assets/jndi.jpg" alt="img"></li>
+</ul>
+<h2><span id="jndi注入详解并跟进流程">JNDI注入详解并跟进流程</span></h2><p>首先一个对象方法要想被远程应用所调用需要其 extends 于 java.rmi.Remote 接口，并需要抛出 RemoteException 异常，而远程对象必须实现 java.rmi.server.UniCastRemoteObject 类。首先创建一个 Hello 的接口（Hello.java）：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">String providerURL = <span class="string">"rmi://"</span> + RMI_HOST + <span class="string">":"</span> + RMI_PORT;</span><br><span class="line"><span class="comment">// 创建环境变量对象</span></span><br><span class="line">Hashtable env = <span class="keyword">new</span> Hashtable();</span><br><span class="line"><span class="comment">// 设置JNDI初始化工厂类名</span></span><br><span class="line">env.put(Context.INITIAL_CONTEXT_FACTORY, <span class="string">"com.sun.jndi.rmi.registry.RegistryContextFactory"</span>);</span><br><span class="line"><span class="comment">// 设置JNDI提供服务的URL地址</span></span><br><span class="line">env.put(Context.PROVIDER_URL, providerURL);</span><br></pre></td></tr></table></figure>
+<p>首先明确这里面的INITIAL_CONTEXT_FACTORY跟Context.PROVIDER_URL是明确默认读取的目录服务器，也就是本地提供类的地方</p>
+<p>在公网vps开启web以及rmi服务</p>
+<p><img src="assets/image-20210128123519295.png" alt="image-20210128123519295"></p>
+<p><img src="assets/image-20210128123609669.png" alt="image-20210128123609669"></p>
+<p>设置断点，当步进到lookup函数时vps上就已经收到了连接请求</p>
+<p><img src="assets/image-20210128123743904.png" alt="image-20210128123743904"></p>
+<p>跟进lookup函数</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Object <span class="title">lookup</span><span class="params">(String name)</span> <span class="keyword">throws</span> NamingException </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> getURLOrDefaultInitCtx(name).lookup(name);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>到getURLOrDefaultInitCtx函数</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> Context <span class="title">getURLOrDefaultInitCtx</span><span class="params">(String name)</span></span></span><br><span class="line"><span class="function">    <span class="keyword">throws</span> NamingException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (NamingManager.hasInitialContextFactoryBuilder()) &#123;</span><br><span class="line">        <span class="keyword">return</span> getDefaultInitCtx();</span><br><span class="line">    &#125;</span><br><span class="line">    String scheme = getURLScheme(name);</span><br><span class="line">    <span class="keyword">if</span> (scheme != <span class="keyword">null</span>) &#123;</span><br><span class="line">        Context ctx = NamingManager.getURLContext(scheme, myProps);</span><br><span class="line">        <span class="keyword">if</span> (ctx != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> ctx;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> getDefaultInitCtx();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>NamingManager类包含用于创建上下文对象和命名或目录服务(Context)中位置信息所引用的对象的方法。此类无法实例化,它只有静态方法。</p>
+<p>hasInitialContextFactoryBuilder函数返回一个布尔值，而getInitialContextFactoryBuilder返回了</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">hasInitialContextFactoryBuilder</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> (getInitialContextFactoryBuilder() != <span class="keyword">null</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">synchronized</span> InitialContextFactoryBuilder</span><br><span class="line">getInitialContextFactoryBuilder() &#123;</span><br><span class="line">    <span class="keyword">return</span> initctx_factory_builder;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个函数先是确认已安装InitialContextFactoryBuilder（用于创建用于创建初始上下文的工厂），如果没有的话，就要用到环境属性里的INITIAL_CONTEXT_FACTORY了，也就是使用我们一开始初始化的工厂类名</p>
+<p><img src="assets/image-20210128130143784.png" alt="image-20210128130143784"></p>
+<p>很明显看出值为null，即NamingManager.hasInitialContextFactoryBuilder()为0（否），继续往下步进</p>
+<p>String scheme = getURLScheme(name);   //获取url以及协议</p>
+<p>接着如果协议存在，就获取对应的上下文环境</p>
+<p>第一次调用 lookup() 函数的时候，会对上下文环境进行一个初始化，这时候代码会对 Name 参数值进行一个 URL 解析，如果 Name 包含一个特定的 Schema 协议，代码则会使用相应的工厂去初始化上下文环境，这时候不管之前配置的工厂环境是什么，这里都会被动态地对其进行替换。</p>
+<p>很奇怪的地方在于，在后续的jdk版本当中默认是不信任这种远程的类的，但是我的vps还是收到了连接请求</p>
+<p><img src="assets/image-20210128132717871.png" alt="image-20210128132717871"></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2021/02/21/%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81/%E6%9D%83%E9%99%90%E7%BB%B4%E6%8C%81/" rel="prev" title="权限维持/权限维持">
+      <i class="fa fa-chevron-left"></i> 权限维持/权限维持
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2021/02/21/%E5%90%88%E4%BC%97%E8%A7%86%E9%A2%91%E8%BE%B9%E7%95%8C%E7%BD%91%E5%85%B3/%E5%90%88%E4%BC%97%E8%A7%86%E9%A2%91%E5%AE%89%E5%85%A8%E4%BA%A4%E6%8D%A2%E6%8E%A5%E5%85%A5%E7%B3%BB%E7%BB%9FRCE/" rel="next" title="合众视频边界网关/合众视频安全交换接入系统RCE">
+      合众视频边界网关/合众视频安全交换接入系统RCE <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#null"><span class="nav-number">1.</span> <span class="nav-text">rmi安全</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#null"><span class="nav-number">1.1.</span> <span class="nav-text">rmi概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#null"><span class="nav-number">1.2.</span> <span class="nav-text">rmi通信过程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#null"><span class="nav-number">1.3.</span> <span class="nav-text">rmi攻击相关防御</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#null"><span class="nav-number">2.</span> <span class="nav-text">JNDI安全</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#null"><span class="nav-number">2.1.</span> <span class="nav-text">什么是JNDI</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#null"><span class="nav-number">2.1.1.</span> <span class="nav-text">javax.naming</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#null"><span class="nav-number">2.1.2.</span> <span class="nav-text">java.rmi.registry</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#null"><span class="nav-number">2.2.</span> <span class="nav-text">JNDI配合rmi进行利用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#null"><span class="nav-number">2.3.</span> <span class="nav-text">jdni注入补丁</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#null"><span class="nav-number">2.4.</span> <span class="nav-text">JNDI注入详解并跟进流程</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">cty</p>
+  <div class="site-description" itemprop="description">whoami</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">9</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">cty</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">chenfan</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.2
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+  <script type="text/javascript" src="//cdn.bootcss.com/canvas-nest.js/1.0.0/canvas-nest.min.js"></script>
+  
+</body>
+</html>

